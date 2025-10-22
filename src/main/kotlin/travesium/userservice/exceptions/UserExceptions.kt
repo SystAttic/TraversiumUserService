@@ -7,5 +7,7 @@ class UserExceptions {
     class UserNotFoundException : RuntimeException("User not found")
 
     class UserAlreadyExistsException() : RuntimeException("User already exists")
+
+    class InvalidUserDataException(message: String) : RuntimeException("Invalid user data: $message")
     
 }

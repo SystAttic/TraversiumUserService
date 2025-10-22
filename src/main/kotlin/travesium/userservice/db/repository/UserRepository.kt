@@ -1,6 +1,8 @@
 package travesium.userservice.db.repository
 
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 import travesium.userservice.db.model.User
 import java.util.*
 
@@ -14,5 +16,14 @@ interface UserRepository : JpaRepository<User, String> {
 
     fun findByEmail(email : String) : Optional<User>
 
-    fun findByUid(uid : String) : Optional<User>
+    fun findByUserId(userId : Long) : Optional<User>
+
+    @Query("SELECT u.followers FROM User u WHERE u.userId = :userId")
+    fun findFollowers(@Param("userId") userId: Long): List<User>
+
+    @Query("SELECT u.following FROM User u WHERE u.userId = :userId")
+    fun findFollowing(@Param("userId") userId: Long): List<User>
+
+    @Query("SELECT u.blocked FROM User u WHERE u.id = :userId")
+    fun findBlocked(@Param("userId") userId: Long): List<User>
 }

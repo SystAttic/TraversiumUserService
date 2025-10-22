@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.serialization.StringDeserializer
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -20,6 +19,7 @@ import org.springframework.kafka.support.TopicPartitionOffset
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
 import org.springframework.kafka.support.serializer.JsonDeserializer
 import org.springframework.kafka.test.context.EmbeddedKafka
+import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.TestPropertySource
 import org.springframework.transaction.annotation.Propagation
@@ -46,6 +46,7 @@ import kotlin.test.Test
     ]
 )
 @ContextConfiguration(classes = [KafkaTests.KafkaConsumerConfiguration::class])
+@ActiveProfiles("test")
 class KafkaTests() {
 
     @Autowired
@@ -62,7 +63,7 @@ class KafkaTests() {
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     fun createUser() {
-        val userDto = UserDto(uid = "123", username = "test", email = "test@example.com")
+        val userDto = UserDto(userId = 123, username = "test", email = "test@example.com")
         userService.createUser(userDto)
 
         waitForSize(1) { reportingKafkaConsumer.getMessages().size }
@@ -76,7 +77,7 @@ class KafkaTests() {
     @Test
     @Transactional
     fun createUserRollback() {
-        val userDto = UserDto(uid = "123", username = "test", email = "test@example.com")
+        val userDto = UserDto(userId = 123, username = "test", email = "test@example.com")
         userService.createUser(userDto)
 
         waitForSize(0) { reportingKafkaConsumer.getMessages().size }
@@ -85,7 +86,7 @@ class KafkaTests() {
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     fun deleteUserByUsername() {
-        val userDto = UserDto(uid = "123", username = "test", email = "nekinekineki@example.com")
+        val userDto = UserDto(userId = 123, username = "test", email = "nekinekineki@example.com")
         userService.createUser(userDto)
         waitForSize(1) { reportingKafkaConsumer.getMessages().size }
         reportingKafkaConsumer.clearMessages()
@@ -100,7 +101,7 @@ class KafkaTests() {
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     fun deleteUserByEmail() {
-        val userDto = UserDto(uid = "123", username = "test", email = "nekinekineki@example.com")
+        val userDto = UserDto(userId = 123, username = "test", email = "nekinekineki@example.com")
         userService.createUser(userDto)
         waitForSize(1) { reportingKafkaConsumer.getMessages().size }
         reportingKafkaConsumer.clearMessages()

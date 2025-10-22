@@ -5,11 +5,11 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
 import org.springframework.context.ApplicationEventPublisher
-import org.springframework.kafka.core.KafkaTemplate
 import travesium.userservice.db.model.User
 import travesium.userservice.db.repository.UserRepository
 import travesium.userservice.dto.UserDto
 import travesium.userservice.exceptions.UserExceptions
+import travesium.userservice.mapper.UserMapper
 import travesium.userservice.service.UserService
 import java.util.*
 
@@ -31,19 +31,19 @@ class UserServiceTest {
 
     @Test
     fun `createUser success`() {
-        val userDto = UserDto(uid = "123", username = "test", email = "test@example.com")
-        whenever(userRepository.save(userDto.toUser())).thenAnswer { it.arguments[0] }
+        val userDto = UserDto(userId = 123, username = "test", email = "test@example.com")
+        whenever(userRepository.save(UserMapper.toEntity(userDto))).thenAnswer { it.arguments[0] }
 
         val result = userService.createUser(userDto)
 
-        assertEquals(userDto.uid, result.uid)
-        verify(userRepository).save(userDto.toUser())
+        assertEquals(userDto.userId, result.userId)
+        verify(userRepository).save(UserMapper.toEntity(userDto))
     }
 
     @Test
     fun `createUser username exists`() {
-        val userDto = UserDto(uid = "123", username = "test", email = "test@example.com")
-        whenever(userRepository.findByUid(userDto.uid)).thenReturn(Optional.empty())
+        val userDto = UserDto(userId = 123, username = "test", email = "test@example.com")
+        whenever(userRepository.findByUserId(userDto.userId!!)).thenReturn(Optional.empty())
         whenever(userRepository.findByUsername(userDto.username)).thenReturn(Optional.of(mock()))
 
         assertThrows(UserExceptions.UserAlreadyExistsException::class.java) {
@@ -53,8 +53,8 @@ class UserServiceTest {
 
     @Test
     fun `createUser email exists`() {
-        val userDto = UserDto(uid = "123", username = "test", email = "test@example.com")
-        whenever(userRepository.findByUid(userDto.uid)).thenReturn(Optional.empty())
+        val userDto = UserDto(userId = 123, username = "test", email = "test@example.com")
+        whenever(userRepository.findByUserId(userDto.userId!!)).thenReturn(Optional.empty())
         whenever(userRepository.findByUsername(userDto.username)).thenReturn(Optional.empty())
         whenever(userRepository.findByEmail(userDto.email)).thenReturn(Optional.of(mock()))
 
@@ -66,7 +66,7 @@ class UserServiceTest {
 
     @Test
     fun `getUserByUsername success`() {
-        val user = User(uid = "123", username = "test", email = "test@example.com")
+        val user = User(userId = 123, username = "test", email = "test@example.com")
         whenever(userRepository.findByUsername("test")).thenReturn(Optional.of(user))
 
         val result = userService.getUserByUsername("test")
@@ -85,7 +85,7 @@ class UserServiceTest {
 
     @Test
     fun `getUserByEmail success`() {
-        val user = User(uid = "123", username = "test", email = "test@example.com")
+        val user = User(userId = 123, username = "test", email = "test@example.com")
         whenever(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user))
 
         val result = userService.getUserByEmail("test@example.com")
@@ -104,7 +104,7 @@ class UserServiceTest {
 
     @Test
     fun `deleteUserByUsername success`() {
-        val user = User(uid = "123", username = "test", email = "test@example.com")
+        val user = User(userId = 123, username = "test", email = "test@example.com")
         whenever(userRepository.findByUsername("test")).thenReturn(Optional.of(user))
         userService.deleteUserByUsername("test")
         verify(userRepository).delete(user)
@@ -120,7 +120,7 @@ class UserServiceTest {
 
     @Test
     fun `deleteUserByEmail success`() {
-        val user = User(uid = "123", username = "test", email = "test@example.com")
+        val user = User(userId = 123, username = "test", email = "test@example.com")
         whenever(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user))
         userService.deleteUserByEmail("test@example.com")
         verify(userRepository).delete(user)
@@ -136,9 +136,9 @@ class UserServiceTest {
 
     @Test
     fun `updateUser success`() {
-        val existingUser = User(uid = "123", username = "old", email = "ex@123.com")
-        val updatedDto = UserDto(uid = "123", username = "new", email = "ex@123.com")
-        whenever(userRepository.findByUid("123")).thenReturn(Optional.of(existingUser))
+        val existingUser = User(userId = 123, username = "old", email = "ex@123.com")
+        val updatedDto = UserDto(userId = 123, username = "new", email = "ex@123.com")
+        whenever(userRepository.findByUserId(123)).thenReturn(Optional.of(existingUser))
         whenever(userRepository.save(existingUser)).thenAnswer { it.arguments[0] }
         val result = userService.updateUser(updatedDto)
         assertEquals("new", result.username)
@@ -146,8 +146,8 @@ class UserServiceTest {
 
     @Test
     fun `updateUser not found`() {
-        val updatedDto = UserDto(uid = "123", username = "new", email = "test@example.com")
-        whenever(userRepository.findByUid("123")).thenReturn(Optional.empty())
+        val updatedDto = UserDto(userId = 123, username = "new", email = "test@example.com")
+        whenever(userRepository.findByUserId(123)).thenReturn(Optional.empty())
         assertThrows(UserExceptions.UserNotFoundException::class.java) {
             userService.updateUser(updatedDto)
         }

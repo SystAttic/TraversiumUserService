@@ -8,6 +8,7 @@ import travesium.userservice.dto.UserDto
 import travesium.userservice.exceptions.UserExceptions
 import travesium.userservice.kafka.data.ReportingStreamData
 import travesium.userservice.kafka.data.UserEvent
+import travesium.userservice.mapper.UserMapper
 import java.time.YearMonth
 
 /**
@@ -20,26 +21,25 @@ class UserService(
 
     @Transactional
     fun createUser(userDto: UserDto): UserDto {
-        if (userRepository.findByUid(userDto.uid).isPresent || userRepository.findByUsername(userDto.username).isPresent || userRepository.findByEmail(userDto.email).isPresent) {
+        if (userDto.userId == null) {
+            throw UserExceptions.InvalidUserDataException("User UID cannot be null for update.")
+        }
+
+        if (userRepository.findByUserId(userDto.userId).isPresent || userRepository.findByUsername(userDto.username).isPresent || userRepository.findByEmail(userDto.email).isPresent) {
             throw UserExceptions.UserAlreadyExistsException()
         }
 
-        return userDto.toUser().let {
-            userRepository.save(it)
+        return UserMapper.toEntity(userDto).let { user ->
+            val savedUser = userRepository.save(user)
             publishUserEvent(UserEvent.USER_CREATED)
-            it.toDto()
+            UserMapper.toDto(savedUser)
         }
     }
 
-    fun getUserByUsername(username: String): UserDto {
-        val user = userRepository.findByUsername(username).orElseThrow { UserExceptions.UserNotFoundException() }
-        return user.toDto()
-    }
+    // TODO: mby add functionality if user is blocked it cannot be retrieved
+    fun getUserByUsername(username: String): UserDto = UserMapper.toDto(userRepository.findByUsername(username).orElseThrow { UserExceptions.UserNotFoundException() })
 
-    fun getUserByEmail(email: String): UserDto {
-        val user = userRepository.findByEmail(email).orElseThrow { UserExceptions.UserNotFoundException() }
-        return user.toDto()
-    }
+    fun getUserByEmail(email: String): UserDto = UserMapper.toDto(userRepository.findByEmail(email).orElseThrow { UserExceptions.UserNotFoundException() })
 
     @Transactional
     fun deleteUserByUsername(username: String) {
@@ -56,17 +56,132 @@ class UserService(
     }
 
     fun updateUser(userDto: UserDto): UserDto {
-        val existingUser = userRepository.findByUid(userDto.uid).orElseThrow { UserExceptions.UserNotFoundException() }
+        if (userDto.userId == null) {
+            throw UserExceptions.InvalidUserDataException("User UID cannot be null for update.")
+        }
+        val existingUser = userRepository.findByUserId(userDto.userId).orElseThrow { UserExceptions.UserNotFoundException() }
 
         val updatedUser = existingUser.copy(
             username = userDto.username,
             email = userDto.email,
             displayName = userDto.displayName,
-            photoReference = userDto.photoReference
+            avatarPhotoReference = userDto.photoReference
         )
 
         userRepository.save(updatedUser)
-        return updatedUser.toDto()
+        return UserMapper.toDto(updatedUser)
+    }
+
+    @Transactional
+    fun followUser(followerUsername: String, followedUsername: String) {
+        val follower = userRepository.findByUsername(followerUsername)
+            .orElseThrow { UserExceptions.UserNotFoundException() }
+        val followed = userRepository.findByUsername(followedUsername)
+            .orElseThrow { UserExceptions.UserNotFoundException() }
+
+        if (follower.userId == followed.userId) {
+            throw UserExceptions.InvalidUserDataException("User cannot follow themselves.")
+        }
+
+        if (follower in followed.blocked) {
+            throw UserExceptions.InvalidUserDataException("Cannot follow a user who has blocked you.")
+        }
+
+        if (followed !in follower.following) {
+            follower.following.add(followed)
+        }
+    }
+
+    @Transactional
+    fun unfollowUser(followerUsername: String, followedUsername: String) {
+        val follower = userRepository.findByUsername(followerUsername)
+            .orElseThrow { UserExceptions.UserNotFoundException() }
+        val followed = userRepository.findByUsername(followedUsername)
+            .orElseThrow { UserExceptions.UserNotFoundException() }
+
+        if (follower.userId == followed.userId) {
+            throw UserExceptions.InvalidUserDataException("User cannot unfollow themselves.")
+        }
+
+        if (followed in follower.following) {
+            follower.following.remove(followed)
+        }
+    }
+
+    fun getFollowers(username: String): List<UserDto> {
+        val user = userRepository.findByUsername(username)
+            .orElseThrow { UserExceptions.UserNotFoundException() }
+
+        val followers = userRepository.findFollowers(user.userId!!)
+
+        return followers.map { UserMapper.toDto(it) }
+    }
+
+    fun getFollowing(username: String): List<UserDto> {
+        val user = userRepository.findByUsername(username)
+            .orElseThrow { UserExceptions.UserNotFoundException() }
+
+        val following = userRepository.findFollowing(user.userId!!)
+
+        return following.map { UserMapper.toDto(it) }
+    }
+
+    fun countFollowers(username: String): Int {
+        val user = userRepository.findByUsername(username)
+            .orElseThrow { UserExceptions.UserNotFoundException() }
+        return user.followers.size
+    }
+
+    fun countFollowing(username: String): Int {
+        val user = userRepository.findByUsername(username)
+            .orElseThrow { UserExceptions.UserNotFoundException() }
+        return user.following.size
+    }
+
+    @Transactional
+    fun blockUser(blockerUsername: String, blockedUsername: String) {
+        val blocker = userRepository.findByUsername(blockerUsername)
+            .orElseThrow { UserExceptions.UserNotFoundException() }
+        val blocked = userRepository.findByUsername(blockedUsername)
+            .orElseThrow { UserExceptions.UserNotFoundException() }
+
+        if (blocker.userId == blocked.userId) throw UserExceptions.InvalidUserDataException("Cannot block self.")
+
+        if (blocked !in blocker.blocked) {
+            blocker.blocked.add(blocked)
+        }
+
+        blocker.following.remove(blocked)
+        blocker.followers.remove(blocked)
+        blocked.following.remove(blocker)
+        blocked.followers.remove(blocker)
+    }
+
+    @Transactional
+    fun unblockUser(blockerUsername: String, blockedUsername: String) {
+        val blocker = userRepository.findByUsername(blockerUsername)
+            .orElseThrow { UserExceptions.UserNotFoundException() }
+        val blocked = userRepository.findByUsername(blockedUsername)
+            .orElseThrow { UserExceptions.UserNotFoundException() }
+
+        if (blocked in blocker.blocked) {
+            blocker.blocked.remove(blocked)
+        }
+    }
+
+    fun getBlockedUsers(username: String): List<UserDto> {
+        val user = userRepository.findByUsername(username)
+            .orElseThrow { UserExceptions.UserNotFoundException() }
+
+        val blockedList = userRepository.findBlocked(user.userId!!)
+
+        return blockedList.map { UserMapper.toDto(it) }
+    }
+
+    fun countBlockedUsers(username: String): Int {
+        val user = userRepository.findByUsername(username)
+            .orElseThrow { UserExceptions.UserNotFoundException() }
+        return user.blocked.size
     }
 
     private fun publishUserEvent(action: UserEvent) {
