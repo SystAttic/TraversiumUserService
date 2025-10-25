@@ -21,11 +21,11 @@ class UserService(
 
     @Transactional
     fun createUser(userDto: UserDto): UserDto {
-        if (userDto.userId == null) {
-            throw UserExceptions.InvalidUserDataException("User UID cannot be null for update.")
+        if (userDto.username == null || userDto.email == null || userDto.userId != null) {
+            throw UserExceptions.InvalidUserDataException("Username and email cannot be null. New user cannot have userId")
         }
 
-        if (userRepository.findByUserId(userDto.userId).isPresent || userRepository.findByUsername(userDto.username).isPresent || userRepository.findByEmail(userDto.email).isPresent) {
+        if (userRepository.findByUsername(userDto.username).isPresent || userRepository.findByEmail(userDto.email).isPresent) {
             throw UserExceptions.UserAlreadyExistsException()
         }
 
@@ -36,7 +36,6 @@ class UserService(
         }
     }
 
-    // TODO: mby add functionality if user is blocked it cannot be retrieved
     fun getUserByUsername(username: String): UserDto = UserMapper.toDto(userRepository.findByUsername(username).orElseThrow { UserExceptions.UserNotFoundException() })
 
     fun getUserByEmail(email: String): UserDto = UserMapper.toDto(userRepository.findByEmail(email).orElseThrow { UserExceptions.UserNotFoundException() })
@@ -62,10 +61,10 @@ class UserService(
         val existingUser = userRepository.findByUserId(userDto.userId).orElseThrow { UserExceptions.UserNotFoundException() }
 
         val updatedUser = existingUser.copy(
-            username = userDto.username,
-            email = userDto.email,
-            displayName = userDto.displayName,
-            avatarPhotoReference = userDto.photoReference
+            displayName = userDto.displayName ?: existingUser.displayName,
+            description = userDto.description ?: existingUser.description,
+            avatarPhotoReference = userDto.avatarPhotoReference ?: existingUser.avatarPhotoReference,
+            coverPhotoReference = userDto.coverPhotoReference ?: existingUser.coverPhotoReference
         )
 
         userRepository.save(updatedUser)

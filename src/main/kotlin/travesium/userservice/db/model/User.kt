@@ -14,16 +14,16 @@ data class User(
     val userId: Long? = null,
 
     @Column(name = "username", unique = true)
-    val username: String = "",
+    val username: String? = null,
 
     @Column(name = "email", unique = true)
-    val email: String = "",
+    val email: String? = null,
 
     @Column(name = "description")
-    val description: String = "",
+    val description: String? = null,
 
     @Column(name = "display_name")
-    val displayName: String = username,
+    val displayName: String? = username,
 
     @Column(name = "avatar_photo_reference")
     val avatarPhotoReference: String? = null,

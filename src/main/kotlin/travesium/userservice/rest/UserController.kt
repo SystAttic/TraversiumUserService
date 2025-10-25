@@ -43,20 +43,22 @@ class UserController(private val userService: UserService) : Logging {
             ),
             ApiResponse(
                 responseCode = "409",
-                description = "Conflict - User with the same uid, username or email already exists."
+                description = "Conflict - User with the same username or email already exists."
             )
         ]
     )
-    fun createUser(@RequestBody userDto: UserDto): ResponseEntity<UserDto> {
+    fun createUser(@RequestBody userDto: UserDto): ResponseEntity<Any> {
         return try {
             val savedUser = userService.createUser(userDto)
             logger.info("User with UID ${savedUser.userId} created or updated")
             ResponseEntity.ok(savedUser)
         } catch (_: UserExceptions.UserAlreadyExistsException) {
             logger.info("User with username ${userDto.username} or email ${userDto.email} already exists")
-            ResponseEntity.status(HttpStatus.CONFLICT).body(null)
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(mapOf("message" to "User with this username or email already exists"))
         } catch (_: Exception) {
-            ResponseEntity.badRequest().build()
+            logger.info("Invalid user data provided for user creation")
+            ResponseEntity.badRequest().body(mapOf("message" to "Invalid user data provided (email, username must not be null, userId must be null)"))
         }
     }
 
@@ -81,14 +83,14 @@ class UserController(private val userService: UserService) : Logging {
             )
         ]
     )
-    fun getUserByUsername(@PathVariable username: String): ResponseEntity<UserDto> {
+    fun getUserByUsername(@PathVariable username: String): ResponseEntity<Any> {
         return try {
             val user = userService.getUserByUsername(username)
             logger.info("User with the username ${user.username} found.")
             ResponseEntity.ok(user)
         } catch (_: UserExceptions.UserNotFoundException){
             logger.info("User with the username $username not found.")
-            ResponseEntity.status(HttpStatus.NOT_FOUND).body(null)
+            ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("message" to "User not found"))
         }
     }
 
@@ -113,18 +115,19 @@ class UserController(private val userService: UserService) : Logging {
             )
         ]
     )
-    fun getUserByEmail(@PathVariable email: String): ResponseEntity<UserDto> {
+    fun getUserByEmail(@PathVariable email: String): ResponseEntity<Any> {
         return try {
             val user = userService.getUserByEmail(email)
             logger.info("User with the email ${user.email} found.")
             ResponseEntity.ok(user)
         } catch (_: UserExceptions.UserNotFoundException){
             logger.info("User with the email $email not found.")
-            ResponseEntity.status(HttpStatus.NOT_FOUND).body(null)
+            ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                mapOf("message" to "User not found")
+            )
         }
     }
 
-    // TODO: add fhir base deletion in future
     @DeleteMapping("/username/{username}")
     @Operation(
         operationId = "deleteUserByUsername",
@@ -142,14 +145,18 @@ class UserController(private val userService: UserService) : Logging {
             )
         ]
     )
-    fun deleteUserByUsername(@PathVariable username: String): ResponseEntity<Void> {
+    fun deleteUserByUsername(@PathVariable username: String): ResponseEntity<Any> {
         return try {
             userService.deleteUserByUsername(username)
             logger.info("User with the username $username deleted.")
-            ResponseEntity.ok().build()
+            ResponseEntity.ok().body(
+                mapOf("message" to "User deleted successfully")
+            )
         } catch (_: UserExceptions.UserNotFoundException){
             logger.info("User with the username $username not found.")
-            ResponseEntity.status(HttpStatus.NOT_FOUND).build()
+            ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                mapOf("message" to "User not found")
+            )
         }
     }
 
@@ -170,51 +177,22 @@ class UserController(private val userService: UserService) : Logging {
             )
         ]
     )
-    fun deleteUserByEmail(@PathVariable email: String): ResponseEntity<Void> {
+    fun deleteUserByEmail(@PathVariable email: String): ResponseEntity<Any> {
         return try {
             userService.deleteUserByEmail(email)
             logger.info("User with the email $email deleted.")
-            ResponseEntity.ok().build()
+            ResponseEntity.ok().body(
+                mapOf("message" to "User deleted successfully")
+            )
         } catch (_: UserExceptions.UserNotFoundException){
             logger.info("User with the email $email not found.")
-            ResponseEntity.status(HttpStatus.NOT_FOUND).build()
-        }
-    }
-
-    // TODO: add fhir base update in future
-    @PutMapping("/username/{username}")
-    @Operation(
-        operationId = "updateUserByUsername",
-        tags = ["User"],
-        summary = "Update a user by username.",
-        description = "Update a user by username.",
-        responses = [
-            ApiResponse(
-                responseCode = "200",
-                description = "Successfully updated the user by username.",
-                content = [Content(
-                    mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = UserDto::class)
-                )]
-            ),
-            ApiResponse(
-                responseCode = "404",
-                description = "Not found - User not found."
+            ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                mapOf("message" to "User not found")
             )
-        ]
-    )
-    fun updateUserByUsername(@PathVariable username: String, @RequestBody userDto: UserDto): ResponseEntity<UserDto> {
-        return try {
-            val updatedUser = userService.updateUser(userDto)
-            logger.info("User with the username $username updated.")
-            ResponseEntity.ok(updatedUser)
-        } catch (_: UserExceptions.UserNotFoundException){
-            logger.info("User with the username $username not found.")
-            ResponseEntity.status(HttpStatus.NOT_FOUND).body(null)
         }
     }
 
-    @PutMapping("/email/{email}")
+    @PutMapping()
     @Operation(
         operationId = "updateUserByEmail",
         tags = ["User"],
@@ -235,14 +213,14 @@ class UserController(private val userService: UserService) : Logging {
             )
         ]
     )
-    fun updateUserByEmail(@PathVariable email: String,  @RequestBody userDto: UserDto): ResponseEntity<UserDto> {
+    fun updateUser(@RequestBody userDto: UserDto): ResponseEntity<Any> {
         return try {
             val updatedUser = userService.updateUser(userDto)
-            logger.info("User with the email $email updated.")
+            logger.info("User with the username ${userDto.username} updated.")
             ResponseEntity.ok(updatedUser)
         } catch (_: UserExceptions.UserNotFoundException) {
-            logger.info("User with the email $email not found.")
-            ResponseEntity.status(HttpStatus.NOT_FOUND).body(null)
+            logger.info("User with the email ${userDto.username} not found.")
+            ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("message" to "User not found"))
         }
     }
 
@@ -270,21 +248,21 @@ class UserController(private val userService: UserService) : Logging {
     fun followUser(
         @PathVariable username: String,
         @PathVariable toFollowUsername: String
-    ): ResponseEntity<Void> {
+    ): ResponseEntity<Any> {
         return try {
             userService.followUser(username, toFollowUsername)
             logger.info("User $username followed user $toFollowUsername.")
-            ResponseEntity.ok().build()
+            ResponseEntity.ok().body(mapOf("message" to "Successfully followed user"))
         } catch (e: UserExceptions.UserNotFoundException) {
             logger.info("User not found while trying to follow: ${e.message}")
-            ResponseEntity.status(HttpStatus.NOT_FOUND).build()
+            ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("message" to "User not found"))
         } catch (e: UserExceptions.InvalidUserDataException) {
             logger.info("Invalid follow operation: ${e.message}")
-            ResponseEntity.badRequest().build()
+            ResponseEntity.badRequest().body(mapOf("message" to "Invalid follow operation: ${e.message}"))
         }
     }
 
-    @DeleteMapping("/{username}/unfollow/{toUnfollowUsername}")
+    @PostMapping("/{username}/unfollow/{toUnfollowUsername}")
     @Operation(
         operationId = "unfollowUser",
         tags = ["User"],
@@ -308,17 +286,17 @@ class UserController(private val userService: UserService) : Logging {
     fun unfollowUser(
         @PathVariable username: String,
         @PathVariable toUnfollowUsername: String
-    ): ResponseEntity<Void> {
+    ): ResponseEntity<Any> {
         return try {
             userService.unfollowUser(username, toUnfollowUsername)
             logger.info("User $username unfollowed user $toUnfollowUsername.")
-            ResponseEntity.ok().build()
+            ResponseEntity.ok().body(mapOf("message" to "Successfully unfollowed user"))
         } catch (e: UserExceptions.UserNotFoundException) {
             logger.info("User not found while trying to unfollow: ${e.message}")
-            ResponseEntity.status(HttpStatus.NOT_FOUND).build()
+            ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("message" to "User not found"))
         } catch (e: UserExceptions.InvalidUserDataException) {
             logger.info("Invalid unfollow operation: ${e.message}")
-            ResponseEntity.badRequest().build()
+            ResponseEntity.badRequest().body(mapOf("message" to "Invalid unfollow operation: ${e.message}"))
         }
     }
 
@@ -347,7 +325,12 @@ class UserController(private val userService: UserService) : Logging {
     fun getFollowers(
         @PathVariable username: String
     ): ResponseEntity<List<UserDto>> {
-        return ResponseEntity.ok(userService.getFollowers(username))
+        try {
+            return ResponseEntity.ok(userService.getFollowers(username))
+        } catch (e: UserExceptions.UserNotFoundException) {
+            logger.info("User with the username $username not found.")
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(emptyList())
+        }
     }
 
     @GetMapping("/{username}/following")
@@ -374,7 +357,12 @@ class UserController(private val userService: UserService) : Logging {
     fun getFollowing(
         @PathVariable username: String
     ): ResponseEntity<List<UserDto>> {
-        return ResponseEntity.ok(userService.getFollowing(username))
+        try {
+            return ResponseEntity.ok(userService.getFollowing(username))
+        } catch (e: UserExceptions.UserNotFoundException) {
+            logger.info("User with the username $username not found.")
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(emptyList())
+        }
     }
 
     @GetMapping("/{username}/followers/count")
@@ -399,7 +387,12 @@ class UserController(private val userService: UserService) : Logging {
         ]
     )
     fun countFollowers(@PathVariable username: String): ResponseEntity<Int> {
-        return ResponseEntity.ok(userService.countFollowers(username))
+        try {
+            return ResponseEntity.ok(userService.countFollowers(username))
+        } catch (e: UserExceptions.UserNotFoundException) {
+            logger.info("User with the username $username not found.")
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(0)
+        }
     }
 
     @GetMapping("/{username}/following/count")
@@ -424,7 +417,12 @@ class UserController(private val userService: UserService) : Logging {
         ]
     )
     fun countFollowing(@PathVariable username: String): ResponseEntity<Int> {
-        return ResponseEntity.ok(userService.countFollowing(username))
+        try {
+            return ResponseEntity.ok(userService.countFollowing(username))
+        } catch (e: UserExceptions.UserNotFoundException) {
+            logger.info("User with the username $username not found.")
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(0)
+        }
     }
 
     @PostMapping("/{blocker}/block/{blocked}")
@@ -452,11 +450,20 @@ class UserController(private val userService: UserService) : Logging {
         @PathVariable blocker: String,
         @PathVariable blocked: String
     ): ResponseEntity<String> {
-        userService.blockUser(blocker, blocked)
-        return ResponseEntity.ok("$blocker blocked $blocked")
+        try {
+            userService.blockUser(blocker, blocked)
+            return ResponseEntity.ok("$blocker blocked $blocked")
+        } catch (e: UserExceptions.UserNotFoundException) {
+            logger.info("User not found while trying to block: ${e.message}")
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found")
+        } catch (e: UserExceptions.InvalidUserDataException) {
+            logger.info("Invalid block operation: ${e.message}")
+            return ResponseEntity.badRequest().body("Invalid block operation: ${e.message}")
+        }
     }
 
-    @DeleteMapping("/{blocker}/unblock/{blocked}")
+
+    @PostMapping("/{blocker}/unblock/{blocked}")
     @Operation(
         operationId = "unblockUser",
         tags = ["User"],
@@ -481,8 +488,16 @@ class UserController(private val userService: UserService) : Logging {
         @PathVariable blocker: String,
         @PathVariable blocked: String
     ): ResponseEntity<String> {
-        userService.unblockUser(blocker, blocked)
-        return ResponseEntity.ok("$blocker unblocked $blocked")
+        try {
+            userService.unblockUser(blocker, blocked)
+            return ResponseEntity.ok("$blocker unblocked $blocked")
+        } catch (e: UserExceptions.UserNotFoundException) {
+            logger.info("User not found while trying to unblock: ${e.message}")
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found")
+        } catch (e: UserExceptions.InvalidUserDataException) {
+            logger.info("Invalid unblock operation: ${e.message}")
+            return ResponseEntity.badRequest().body("Invalid unblock operation: ${e.message}")
+        }
     }
 
     @GetMapping("/{username}/blocked")
@@ -509,7 +524,12 @@ class UserController(private val userService: UserService) : Logging {
     fun getBlockedUsers(
         @PathVariable username: String
     ): ResponseEntity<List<UserDto>> {
-        return ResponseEntity.ok(userService.getBlockedUsers(username))
+        try {
+            return ResponseEntity.ok(userService.getBlockedUsers(username))
+        } catch (e: UserExceptions.UserNotFoundException) {
+            logger.info("User with the username $username not found.")
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(emptyList())
+        }
     }
 
     @GetMapping("/{username}/blocked/count")
@@ -534,10 +554,15 @@ class UserController(private val userService: UserService) : Logging {
         ]
     )
     fun countBlockedUsers(@PathVariable username: String): ResponseEntity<Int> {
-        return ResponseEntity.ok(userService.countBlockedUsers(username))
+        try {
+            return ResponseEntity.ok(userService.countBlockedUsers(username))
+        } catch (e: UserExceptions.UserNotFoundException) {
+            logger.info("User with the username $username not found.")
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(0)
+        }
     }
 
     // TODO: add firebase
-    // TODO: add cors configuration
     // TODO: delete users da se tudi iz collection izbriše (da tm k se collectioni prkazujejo, ne prikaže teh k so izbrisani, oke tole samo če bo čas)
+    // TODO: when user is blocked make a request to trip service to remove user's trips from feed of the blocker
 }
