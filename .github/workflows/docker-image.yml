@@ -19,17 +19,13 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-#
-#      - name: Build with Maven
-#        run: mvn clean package -DskipTests
+
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
 
       - name: Get project version
         id: project_version
         run: echo "version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_OUTPUT
-
-      - name: Show project version
-        run: |
-         echo "Maven project version: ${{ steps.project_version.outputs.version }}"
 
       - name: Build Docker image
         run: |
