@@ -71,7 +71,7 @@ class KafkaTests() {
         assert(messages.size == 1)
         val receivedData = messages[0] as ReportingStreamData
         assert(receivedData.action == UserEvent.USER_CREATED)
-        userService.deleteUserByUsername("test")
+        userService.deleteUser("test")
     }
 
     @Test
@@ -90,7 +90,7 @@ class KafkaTests() {
         userService.createUser(userDto)
         waitForSize(1) { reportingKafkaConsumer.getMessages().size }
         reportingKafkaConsumer.clearMessages()
-        userService.deleteUserByUsername("test")
+        userService.deleteUser("test")
         waitForSize(1) { reportingKafkaConsumer.getMessages().size }
         val messages = reportingKafkaConsumer.getMessages()
         assert(messages.size == 1)

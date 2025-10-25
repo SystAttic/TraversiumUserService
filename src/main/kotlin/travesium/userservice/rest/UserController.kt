@@ -42,6 +42,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Bad Request - Invalid user data provided."
             ),
             ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to create user."
+            ),
+            ApiResponse(
                 responseCode = "409",
                 description = "Conflict - User with the same username or email already exists."
             )
@@ -128,16 +132,20 @@ class UserController(private val userService: UserService) : Logging {
         }
     }
 
-    @DeleteMapping("/username/{username}")
+    @DeleteMapping()
     @Operation(
-        operationId = "deleteUserByUsername",
+        operationId = "deleteUser",
         tags = ["User"],
-        summary = "Delete a user by username.",
-        description = "Delete a user by username.",
+        summary = "Delete a user.",
+        description = "Delete a user.",
         responses = [
             ApiResponse(
                 responseCode = "200",
-                description = "Successfully deleted the user by username."
+                description = "Successfully deleted the user."
+            ),
+            ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to delete user."
             ),
             ApiResponse(
                 responseCode = "404",
@@ -145,47 +153,15 @@ class UserController(private val userService: UserService) : Logging {
             )
         ]
     )
-    fun deleteUserByUsername(@PathVariable username: String): ResponseEntity<Any> {
+    fun deleteUserByUsername(): ResponseEntity<Any> {
         return try {
-            userService.deleteUserByUsername(username)
-            logger.info("User with the username $username deleted.")
+            userService.deleteUser()
+            logger.info("User  deleted.")
             ResponseEntity.ok().body(
                 mapOf("message" to "User deleted successfully")
             )
         } catch (_: UserExceptions.UserNotFoundException){
-            logger.info("User with the username $username not found.")
-            ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                mapOf("message" to "User not found")
-            )
-        }
-    }
-
-    @DeleteMapping("/email/{email}")
-    @Operation(
-        operationId = "deleteUserByEmail",
-        tags = ["User"],
-        summary = "Delete a user by email.",
-        description = "Delete a user by email.",
-        responses = [
-            ApiResponse(
-                responseCode = "200",
-                description = "Successfully deleted the user by email."
-            ),
-            ApiResponse(
-                responseCode = "404",
-                description = "Not found - User not found."
-            )
-        ]
-    )
-    fun deleteUserByEmail(@PathVariable email: String): ResponseEntity<Any> {
-        return try {
-            userService.deleteUserByEmail(email)
-            logger.info("User with the email $email deleted.")
-            ResponseEntity.ok().body(
-                mapOf("message" to "User deleted successfully")
-            )
-        } catch (_: UserExceptions.UserNotFoundException){
-            logger.info("User with the email $email not found.")
+            logger.info("User not found.")
             ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                 mapOf("message" to "User not found")
             )
@@ -208,6 +184,10 @@ class UserController(private val userService: UserService) : Logging {
                 )]
             ),
             ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to update user."
+            ),
+            ApiResponse(
                 responseCode = "404",
                 description = "Not found - User not found."
             )
@@ -224,7 +204,40 @@ class UserController(private val userService: UserService) : Logging {
         }
     }
 
-    @PostMapping("/{username}/follow/{toFollowUsername}")
+    // TODO: figure out how to protect this one
+    @PostMapping("/userList")
+    @Operation(
+        operationId = "userList",
+        tags = ["User"],
+        summary = "Get a list of users by usernames.",
+        description = "Return users named in the list of usernames.",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Successfully retrieved the list of users.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = UserDto::class)
+                )],
+            ),
+            ApiResponse(
+                responseCode = "400",
+                description = "Bad Request - Invalid list of usernames provided."
+            )
+        ]
+    )
+    fun listOfUsers(@RequestBody usernames: List<String>): ResponseEntity<Any> {
+        return try {
+            val users = userService.getUsersByUsernames(usernames)
+            logger.info("Retrieved list of users for provided usernames.")
+            ResponseEntity.ok(users)
+        } catch (e: Exception) {
+            logger.info("Invalid list of usernames provided: ${e.message}")
+            ResponseEntity.badRequest().body(mapOf("message" to "Invalid list of usernames provided"))
+        }
+    }
+
+    @PostMapping("/follow/{toFollowUsername}")
     @Operation(
         operationId = "followUser",
         tags = ["User"],
@@ -234,6 +247,10 @@ class UserController(private val userService: UserService) : Logging {
             ApiResponse(
                 responseCode = "200",
                 description = "Successfully followed the user."
+            ),
+            ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to follow user."
             ),
             ApiResponse(
                 responseCode = "404",
@@ -246,12 +263,11 @@ class UserController(private val userService: UserService) : Logging {
         ]
     )
     fun followUser(
-        @PathVariable username: String,
         @PathVariable toFollowUsername: String
     ): ResponseEntity<Any> {
         return try {
-            userService.followUser(username, toFollowUsername)
-            logger.info("User $username followed user $toFollowUsername.")
+            userService.followUser(toFollowUsername)
+            logger.info("Followed user $toFollowUsername.")
             ResponseEntity.ok().body(mapOf("message" to "Successfully followed user"))
         } catch (e: UserExceptions.UserNotFoundException) {
             logger.info("User not found while trying to follow: ${e.message}")
@@ -262,7 +278,7 @@ class UserController(private val userService: UserService) : Logging {
         }
     }
 
-    @PostMapping("/{username}/unfollow/{toUnfollowUsername}")
+    @PostMapping("/unfollow/{toUnfollowUsername}")
     @Operation(
         operationId = "unfollowUser",
         tags = ["User"],
@@ -272,6 +288,10 @@ class UserController(private val userService: UserService) : Logging {
             ApiResponse(
                 responseCode = "200",
                 description = "Successfully unfollowed the user."
+            ),
+            ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to follow user."
             ),
             ApiResponse(
                 responseCode = "404",
@@ -284,12 +304,11 @@ class UserController(private val userService: UserService) : Logging {
         ]
     )
     fun unfollowUser(
-        @PathVariable username: String,
         @PathVariable toUnfollowUsername: String
     ): ResponseEntity<Any> {
         return try {
-            userService.unfollowUser(username, toUnfollowUsername)
-            logger.info("User $username unfollowed user $toUnfollowUsername.")
+            userService.unfollowUser(toUnfollowUsername)
+            logger.info("Unfollowed user $toUnfollowUsername.")
             ResponseEntity.ok().body(mapOf("message" to "Successfully unfollowed user"))
         } catch (e: UserExceptions.UserNotFoundException) {
             logger.info("User not found while trying to unfollow: ${e.message}")
@@ -425,7 +444,7 @@ class UserController(private val userService: UserService) : Logging {
         }
     }
 
-    @PostMapping("/{blocker}/block/{blocked}")
+    @PostMapping("/block/{blocked}")
     @Operation(
         operationId = "blockUser",
         tags = ["User"],
@@ -435,6 +454,10 @@ class UserController(private val userService: UserService) : Logging {
             ApiResponse(
                 responseCode = "200",
                 description = "Successfully blocked the user."
+            ),
+            ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to follow user."
             ),
             ApiResponse(
                 responseCode = "404",
@@ -447,12 +470,11 @@ class UserController(private val userService: UserService) : Logging {
         ]
     )
     fun blockUser(
-        @PathVariable blocker: String,
         @PathVariable blocked: String
     ): ResponseEntity<String> {
         try {
-            userService.blockUser(blocker, blocked)
-            return ResponseEntity.ok("$blocker blocked $blocked")
+            userService.blockUser(blocked)
+            return ResponseEntity.ok("User blocked successfully")
         } catch (e: UserExceptions.UserNotFoundException) {
             logger.info("User not found while trying to block: ${e.message}")
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found")
@@ -463,7 +485,7 @@ class UserController(private val userService: UserService) : Logging {
     }
 
 
-    @PostMapping("/{blocker}/unblock/{blocked}")
+    @PostMapping("/unblock/{blocked}")
     @Operation(
         operationId = "unblockUser",
         tags = ["User"],
@@ -473,6 +495,10 @@ class UserController(private val userService: UserService) : Logging {
             ApiResponse(
                 responseCode = "200",
                 description = "Successfully unblocked the user."
+            ),
+            ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to follow user."
             ),
             ApiResponse(
                 responseCode = "404",
@@ -485,12 +511,11 @@ class UserController(private val userService: UserService) : Logging {
         ]
     )
     fun unblockUser(
-        @PathVariable blocker: String,
         @PathVariable blocked: String
     ): ResponseEntity<String> {
         try {
-            userService.unblockUser(blocker, blocked)
-            return ResponseEntity.ok("$blocker unblocked $blocked")
+            userService.unblockUser(blocked)
+            return ResponseEntity.ok("User unblocked successfully")
         } catch (e: UserExceptions.UserNotFoundException) {
             logger.info("User not found while trying to unblock: ${e.message}")
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found")
@@ -500,7 +525,7 @@ class UserController(private val userService: UserService) : Logging {
         }
     }
 
-    @GetMapping("/{username}/blocked")
+    @GetMapping("/blocked")
     @Operation(
         operationId = "getBlockedUsers",
         tags = ["User"],
@@ -516,23 +541,25 @@ class UserController(private val userService: UserService) : Logging {
                 )]
             ),
             ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to follow user."
+            ),
+            ApiResponse(
                 responseCode = "404",
                 description = "Not found - User not found."
             )
         ]
     )
-    fun getBlockedUsers(
-        @PathVariable username: String
-    ): ResponseEntity<List<UserDto>> {
+    fun getBlockedUsers(): ResponseEntity<List<UserDto>> {
         try {
-            return ResponseEntity.ok(userService.getBlockedUsers(username))
+            return ResponseEntity.ok(userService.getBlockedUsers())
         } catch (e: UserExceptions.UserNotFoundException) {
-            logger.info("User with the username $username not found.")
+            logger.info("User not found.")
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(emptyList())
         }
     }
 
-    @GetMapping("/{username}/blocked/count")
+    @GetMapping("/blocked/count")
     @Operation(
         operationId = "countBlockedUsers",
         tags = ["User"],
@@ -548,21 +575,24 @@ class UserController(private val userService: UserService) : Logging {
                 )]
             ),
             ApiResponse(
+                responseCode = "403",
+                description = "Forbidden - Unauthorized to follow user."
+            ),
+            ApiResponse(
                 responseCode = "404",
                 description = "Not found - User not found."
             )
         ]
     )
-    fun countBlockedUsers(@PathVariable username: String): ResponseEntity<Int> {
+    fun countBlockedUsers(): ResponseEntity<Int> {
         try {
-            return ResponseEntity.ok(userService.countBlockedUsers(username))
+            return ResponseEntity.ok(userService.countBlockedUsers())
         } catch (e: UserExceptions.UserNotFoundException) {
-            logger.info("User with the username $username not found.")
+            logger.info("User not found.")
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(0)
         }
     }
 
-    // TODO: add firebase
     // TODO: delete users da se tudi iz collection izbriše (da tm k se collectioni prkazujejo, ne prikaže teh k so izbrisani, oke tole samo če bo čas)
     // TODO: when user is blocked make a request to trip service to remove user's trips from feed of the blocker
 }
