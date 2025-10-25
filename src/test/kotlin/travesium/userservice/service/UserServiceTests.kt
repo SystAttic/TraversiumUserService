@@ -33,7 +33,7 @@ class UserServiceTest {
 
     @Test
     fun `createUser success`() {
-        val userDto = UserDto(username = "test", email = "test@example.com")
+        val userDto = UserDto(username = "test", email = "test@example.com", firebaseId = "firebase123")
         whenever(userRepository.save(UserMapper.toEntity(userDto))).thenAnswer { it.arguments[0] }
 
         val result = userService.createUser(userDto)
@@ -44,7 +44,8 @@ class UserServiceTest {
 
     @Test
     fun `createUser username exists`() {
-        val userDto = UserDto(username = "test", email = "test@example.com")
+        val userDto = UserDto(username = "test", email = "test@example.com", firebaseId = "firebase123")
+        whenever(userRepository.findByUserId(userDto.userId!!)).thenReturn(Optional.empty())
         whenever(userRepository.findByUsername(userDto.username!!)).thenReturn(Optional.of(mock()))
 
         assertThrows(UserExceptions.UserAlreadyExistsException::class.java) {
@@ -66,7 +67,7 @@ class UserServiceTest {
 
     @Test
     fun `getUserByUsername success`() {
-        val user = User(userId = 123, username = "test", email = "test@example.com")
+        val user = User(username = "test", email = "test@example.com", firebaseId = "firebase123")
         whenever(userRepository.findByUsername("test")).thenReturn(Optional.of(user))
 
         val result = userService.getUserByUsername("test")
@@ -85,7 +86,7 @@ class UserServiceTest {
 
     @Test
     fun `getUserByEmail success`() {
-        val user = User(userId = 123, username = "test", email = "test@example.com")
+        val user = User(username = "test", email = "test@example.com", firebaseId = "firebase123")
         whenever(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user))
 
         val result = userService.getUserByEmail("test@example.com")
@@ -104,9 +105,9 @@ class UserServiceTest {
 
     @Test
     fun `deleteUserByUsername success`() {
-        val user = User(userId = 123, username = "test", email = "test@example.com")
+        val user = User(username = "test", email = "test@example.com", firebaseId = "firebase123")
         whenever(userRepository.findByUsername("test")).thenReturn(Optional.of(user))
-        userService.deleteUserByUsername("test")
+        userService.deleteUser("test")
         verify(userRepository).delete(user)
     }
 
@@ -114,13 +115,13 @@ class UserServiceTest {
     fun `deleteUserByUsername not found`() {
         whenever(userRepository.findByUsername("test")).thenReturn(Optional.empty())
         assertThrows(UserExceptions.UserNotFoundException::class.java) {
-            userService.deleteUserByUsername("test")
+            userService.deleteUser("test")
         }
     }
 
     @Test
     fun `deleteUserByEmail success`() {
-        val user = User(userId = 123, username = "test", email = "test@example.com")
+        val user = User(username = "test", email = "test@example.com", firebaseId = "firebase123")
         whenever(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user))
         userService.deleteUserByEmail("test@example.com")
         verify(userRepository).delete(user)
@@ -146,7 +147,7 @@ class UserServiceTest {
 
     @Test
     fun `updateUser not found`() {
-        val updatedDto = UserDto(userId = 123, username = "new", email = "test@example.com")
+        val updatedDto = UserDto(username = "new", email = "test@example.com", firebaseId = "firebase123")
         whenever(userRepository.findByUserId(123)).thenReturn(Optional.empty())
         assertThrows(UserExceptions.UserNotFoundException::class.java) {
             userService.updateUser(updatedDto)

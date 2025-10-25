@@ -1,14 +1,17 @@
 package travesium.userservice.service
 
 import org.springframework.context.ApplicationEventPublisher
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import travesium.userservice.db.model.User
 import travesium.userservice.db.repository.UserRepository
 import travesium.userservice.dto.UserDto
 import travesium.userservice.exceptions.UserExceptions
 import travesium.userservice.kafka.data.ReportingStreamData
 import travesium.userservice.kafka.data.UserEvent
 import travesium.userservice.mapper.UserMapper
+import travesium.userservice.security.TraversiumPrincipal
 import java.time.YearMonth
 
 /**
@@ -17,13 +20,16 @@ import java.time.YearMonth
 @Service
 class UserService(
     private val userRepository: UserRepository,
-    private val eventPublisher: ApplicationEventPublisher) {
+    private val eventPublisher: ApplicationEventPublisher,
+    private val firebaseService: FirebaseService) {
 
     @Transactional
     fun createUser(userDto: UserDto): UserDto {
-        if (userDto.username == null || userDto.email == null || userDto.userId != null) {
-            throw UserExceptions.InvalidUserDataException("Username and email cannot be null. New user cannot have userId")
+        if (userDto.username == null || userDto.email == null || userDto.userId != null || userDto.firebaseId == null) {
+            throw UserExceptions.InvalidUserDataException("Username,email and firebase id cannot be null. New user cannot have userId")
         }
+
+        checkIfEmailAndFirebaseIdMatch(userDto.firebaseId, userDto.email)
 
         if (userRepository.findByUsername(userDto.username).isPresent || userRepository.findByEmail(userDto.email).isPresent) {
             throw UserExceptions.UserAlreadyExistsException()
@@ -41,15 +47,9 @@ class UserService(
     fun getUserByEmail(email: String): UserDto = UserMapper.toDto(userRepository.findByEmail(email).orElseThrow { UserExceptions.UserNotFoundException() })
 
     @Transactional
-    fun deleteUserByUsername(username: String) {
-        val user = userRepository.findByUsername(username).orElseThrow { UserExceptions.UserNotFoundException() }
-        publishUserEvent(UserEvent.USER_DELETED)
-        userRepository.delete(user)
-    }
+    fun deleteUser() {
+        val user = getUserFromContext()
 
-    @Transactional
-    fun deleteUserByEmail(email: String) {
-        val user = userRepository.findByEmail(email).orElseThrow { UserExceptions.UserNotFoundException() }
         publishUserEvent(UserEvent.USER_DELETED)
         userRepository.delete(user)
     }
@@ -60,6 +60,8 @@ class UserService(
             throw UserExceptions.InvalidUserDataException("User UID cannot be null for update.")
         }
         val existingUser = userRepository.findByUserId(userDto.userId).orElseThrow { UserExceptions.UserNotFoundException() }
+
+        checkAuthorization(existingUser.firebaseId!!, existingUser.email!!)
 
         val updatedUser = existingUser.copy(
             displayName = userDto.displayName ?: existingUser.displayName,
@@ -73,11 +75,26 @@ class UserService(
     }
 
     @Transactional
-    fun followUser(followerUsername: String, followedUsername: String) {
-        val follower = userRepository.findByUsername(followerUsername)
-            .orElseThrow { UserExceptions.UserNotFoundException() }
+    fun getUsersByUsernames(usernames: List<String>): List<UserDto> {
+        if (usernames.isEmpty()) return emptyList()
+
+        val batchSize = 1000
+        val results = mutableListOf<User>()
+
+        usernames.chunked(batchSize).forEach { batch ->
+            val users = userRepository.findByUsernames(batch)
+            results.addAll(users)
+        }
+
+        return results.map { UserMapper.toDto(it) }
+    }
+
+    @Transactional
+    fun followUser(followedUsername: String) {
         val followed = userRepository.findByUsername(followedUsername)
             .orElseThrow { UserExceptions.UserNotFoundException() }
+
+        val follower = getUserFromContext()
 
         if (follower.userId == followed.userId) {
             throw UserExceptions.InvalidUserDataException("User cannot follow themselves.")
@@ -93,11 +110,11 @@ class UserService(
     }
 
     @Transactional
-    fun unfollowUser(followerUsername: String, followedUsername: String) {
-        val follower = userRepository.findByUsername(followerUsername)
-            .orElseThrow { UserExceptions.UserNotFoundException() }
+    fun unfollowUser(followedUsername: String) {
         val followed = userRepository.findByUsername(followedUsername)
             .orElseThrow { UserExceptions.UserNotFoundException() }
+
+        val follower = getUserFromContext()
 
         if (follower.userId == followed.userId) {
             throw UserExceptions.InvalidUserDataException("User cannot unfollow themselves.")
@@ -139,11 +156,11 @@ class UserService(
     }
 
     @Transactional
-    fun blockUser(blockerUsername: String, blockedUsername: String) {
-        val blocker = userRepository.findByUsername(blockerUsername)
-            .orElseThrow { UserExceptions.UserNotFoundException() }
+    fun blockUser(blockedUsername: String) {
         val blocked = userRepository.findByUsername(blockedUsername)
             .orElseThrow { UserExceptions.UserNotFoundException() }
+
+        val blocker = getUserFromContext()
 
         if (blocker.userId == blocked.userId) throw UserExceptions.InvalidUserDataException("Cannot block self.")
 
@@ -158,29 +175,29 @@ class UserService(
     }
 
     @Transactional
-    fun unblockUser(blockerUsername: String, blockedUsername: String) {
-        val blocker = userRepository.findByUsername(blockerUsername)
-            .orElseThrow { UserExceptions.UserNotFoundException() }
+    fun unblockUser(blockedUsername: String) {
         val blocked = userRepository.findByUsername(blockedUsername)
             .orElseThrow { UserExceptions.UserNotFoundException() }
+
+        val blocker = getUserFromContext()
 
         if (blocked in blocker.blocked) {
             blocker.blocked.remove(blocked)
         }
     }
 
-    fun getBlockedUsers(username: String): List<UserDto> {
-        val user = userRepository.findByUsername(username)
-            .orElseThrow { UserExceptions.UserNotFoundException() }
+    fun getBlockedUsers(): List<UserDto> {
+        val user = getUserFromContext()
 
         val blockedList = userRepository.findBlocked(user.userId!!)
 
         return blockedList.map { UserMapper.toDto(it) }
     }
 
-    fun countBlockedUsers(username: String): Int {
-        val user = userRepository.findByUsername(username)
-            .orElseThrow { UserExceptions.UserNotFoundException() }
+    fun countBlockedUsers(): Int {
+        val user = getUserFromContext()
+
+        checkAuthorization(user.firebaseId!!, user.email!!)
         return user.blocked.size
     }
 
@@ -190,5 +207,25 @@ class UserService(
             action = action
         )
         eventPublisher.publishEvent(event)
+    }
+
+    private fun checkIfEmailAndFirebaseIdMatch(userFireBaseId: String, userEmail: String, ) {
+        val authenticationPrincipal = SecurityContextHolder.getContext().authentication.principal as TraversiumPrincipal
+        if (authenticationPrincipal.uid != userFireBaseId || authenticationPrincipal.email != userEmail) {
+            throw UserExceptions.UnauthorizedException("Users email and firebase id do not match.")
+        }
+    }
+
+    private fun checkAuthorization(userFireBaseId: String, userEmail: String) {
+        val authenticationPrincipal = SecurityContextHolder.getContext().authentication.principal as TraversiumPrincipal
+        if (authenticationPrincipal.uid != userFireBaseId && authenticationPrincipal.email != userEmail) {
+            throw UserExceptions.UnauthorizedException("User is not authorized to perform this action.")
+        }
+    }
+
+    private fun getUserFromContext(): User {
+        val firebaseId = firebaseService.extractUidFromToken(SecurityContextHolder.getContext().authentication.credentials as String)
+        return userRepository.findByFirebaseId(firebaseId)
+            .orElseThrow { UserExceptions.UserNotFoundException() }
     }
 }
