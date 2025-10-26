@@ -1,16 +1,16 @@
 package travesium.userservice.dto
 
-import travesium.userservice.db.model.User
-
 /**
  * @author Maja Razinger
  */
 data class UserDto(
     val userId: Long? = null,
-    val username: String,
-    val email: String,
-    val displayName: String = username,
-    val photoReference: String? = null,
+    val username: String? = null,
+    val email: String? = null,
+    val displayName: String? = username,
+    val avatarPhotoReference: String? = null,
+    val coverPhotoReference: String? = null,
+    val description: String? = null,
     val following: Set<UserDto> = emptySet(),
     val followers: Set<UserDto> = emptySet(),
     val blocked: Set<UserDto> = emptySet(),
