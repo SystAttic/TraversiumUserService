@@ -15,7 +15,6 @@ import travesium.userservice.db.model.User
 import travesium.userservice.db.repository.UserRepository
 import travesium.userservice.exceptions.UserExceptions
 import travesium.userservice.service.UserService
-import java.time.OffsetDateTime
 
 /**
  * @author Maja Razinger
@@ -29,7 +28,6 @@ import java.time.OffsetDateTime
 class UserFollowingAndBlockedTests@Autowired constructor(
     private val userRepository: UserRepository,
     @Autowired private val userService: UserService,
-    service: UserService
 ) {
 
     private lateinit var dejan: User
