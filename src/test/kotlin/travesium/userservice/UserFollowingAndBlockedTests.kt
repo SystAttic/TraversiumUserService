@@ -7,13 +7,17 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.junit.jupiter.SpringExtension
 import org.springframework.transaction.annotation.Transactional
 import travesium.userservice.db.model.User
 import travesium.userservice.db.repository.UserRepository
 import travesium.userservice.exceptions.UserExceptions
+import travesium.userservice.security.MockFirebaseConfig
 import travesium.userservice.service.UserService
 
 /**
@@ -25,9 +29,11 @@ import travesium.userservice.service.UserService
 @ExtendWith(SpringExtension::class)
 @Transactional
 @DirtiesContext
+@ContextConfiguration(classes = [MockFirebaseConfig::class])
 class UserFollowingAndBlockedTests@Autowired constructor(
     private val userRepository: UserRepository,
     @Autowired private val userService: UserService,
+    @Autowired private val firebaseConfig: MockFirebaseConfig
 ) {
 
     private lateinit var dejan: User
@@ -39,16 +45,24 @@ class UserFollowingAndBlockedTests@Autowired constructor(
     fun setup() {
         userRepository.deleteAll()
 
-        dejan = userRepository.save(User(username = "dejan", email = "dejanjarc@gmail.com"))
-        jure = userRepository.save(User(username = "jure", email = "jurezupancic@gmail.com"))
-        ozbej = userRepository.save(User(username = "ozbej", email = "ozbejpavc@gmail.com"))
-        maja = userRepository.save(User(username = "maja", email = "majarazinger@gmail.com"))
+        firebaseConfig.setTokenData("token1", "dejanUID", "dejanjarc@gmail.com")
+        firebaseConfig.setTokenData("token2", "jureUID", "jurezupancic@gmail.com")
+        firebaseConfig.setTokenData("token3", "ozbejUID", "ozbejpavc@gmail.com")
+        firebaseConfig.setTokenData("token4", "majaUID", "majarazinger@gmail.com")
+
+        dejan = userRepository.save(User(username = "dejan", email = "dejanjarc@gmail.com", firebaseId = "dejanUID"))
+        jure = userRepository.save(User(username = "jure", email = "jurezupancic@gmail.com", firebaseId = "jureUID"))
+        ozbej = userRepository.save(User(username = "ozbej", email = "ozbejpavc@gmail.com", firebaseId = "ozbejUID"))
+        maja = userRepository.save(User(username = "maja", email = "majarazinger@gmail.com", firebaseId = "majaUID"))
     }
 
     @Test
     fun testFollowing() {
-        userService.followUser("dejan", "jure")
-        userService.followUser("dejan", "ozbej")
+        val auth = UsernamePasswordAuthenticationToken("principal", "token1")
+        SecurityContextHolder.getContext().authentication = auth
+
+        userService.followUser( "jure")
+        userService.followUser("ozbej")
 
         val dejanFollowers = userService.getFollowers("dejan")
         val dejanFollowing = userService.getFollowing("dejan")
@@ -66,10 +80,13 @@ class UserFollowingAndBlockedTests@Autowired constructor(
 
     @Test
     fun testBlocking() {
-        userService.blockUser("maja", "ozbej")
-        userService.blockUser("maja", "jure")
+        val auth = UsernamePasswordAuthenticationToken("principal", "token4")
+        SecurityContextHolder.getContext().authentication = auth
 
-        val majaBlocked = userService.getBlockedUsers("maja")
+        userService.blockUser("ozbej")
+        userService.blockUser("jure")
+
+        val majaBlocked = userService.getBlockedUsers()
         assert(majaBlocked.size == 2)
         assert(majaBlocked.any { it.username == "ozbej" })
         assert(majaBlocked.any { it.username == "jure" })
@@ -77,41 +94,53 @@ class UserFollowingAndBlockedTests@Autowired constructor(
 
     @Test
     fun testFollowBlockedUser() {
-        userService.blockUser("maja", "ozbej")
+        val auth = UsernamePasswordAuthenticationToken("principal", "token4")
+        SecurityContextHolder.getContext().authentication = auth
+
+        userService.blockUser("ozbej")
         assertThrows<UserExceptions.InvalidUserDataException> {
-            userService.followUser("ozbej", "maja")
+            userService.followUser( "maja")
         }
     }
 
     @Test
     fun testUnfollowUser() {
-        userService.followUser("dejan", "jure")
+        val auth = UsernamePasswordAuthenticationToken("principal", "token1")
+        SecurityContextHolder.getContext().authentication = auth
+
+        userService.followUser("jure")
         var dejanFollowing = userService.getFollowing("dejan")
         assert(dejanFollowing.size == 1)
 
-        userService.unfollowUser("dejan", "jure")
+        userService.unfollowUser( "jure")
         dejanFollowing = userService.getFollowing("dejan")
         assert(dejanFollowing.isEmpty())
     }
 
     @Test
     fun testUnblockUser() {
-        userService.blockUser("maja", "ozbej")
-        var majaBlocked = userService.getBlockedUsers("maja")
+        val auth = UsernamePasswordAuthenticationToken("principal", "token4")
+        SecurityContextHolder.getContext().authentication = auth
+
+        userService.blockUser( "ozbej")
+        var majaBlocked = userService.getBlockedUsers()
         assert(majaBlocked.size == 1)
 
-        userService.unblockUser("maja", "ozbej")
-        majaBlocked = userService.getBlockedUsers("maja")
+        userService.unblockUser( "ozbej")
+        majaBlocked = userService.getBlockedUsers()
         assert(majaBlocked.isEmpty())
     }
 
     @Test
     fun followThenBlock() {
-        userService.followUser("dejan", "jure")
+        val auth = UsernamePasswordAuthenticationToken("principal", "token1")
+        SecurityContextHolder.getContext().authentication = auth
+
+        userService.followUser( "jure")
         var dejanFollowing = userService.getFollowing("dejan")
         assert(dejanFollowing.size == 1)
 
-        userService.blockUser("dejan", "jure")
+        userService.blockUser( "jure")
         dejanFollowing = userService.getFollowing("dejan")
         assert(dejanFollowing.isEmpty())
 
@@ -121,15 +150,21 @@ class UserFollowingAndBlockedTests@Autowired constructor(
 
     @Test
     fun selfBlock() {
+        val auth = UsernamePasswordAuthenticationToken("principal", "token4")
+        SecurityContextHolder.getContext().authentication = auth
+
         assertThrows<UserExceptions.InvalidUserDataException> {
-            userService.blockUser("maja", "maja")
+            userService.blockUser( "maja")
         }
     }
 
     @Test
     fun selfFollow() {
+        val auth = UsernamePasswordAuthenticationToken("principal", "token2")
+        SecurityContextHolder.getContext().authentication = auth
+
         assertThrows<UserExceptions.InvalidUserDataException> {
-            userService.followUser("jure", "jure")
+            userService.followUser( "jure")
         }
     }
 

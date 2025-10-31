@@ -12,7 +12,6 @@ import java.io.FileInputStream
  * @author Maja Razinger
  */
 @Configuration
-//@Profile("auth")
 class FirebaseConfig {
 
     @Bean

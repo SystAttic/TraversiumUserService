@@ -11,7 +11,6 @@ import travesium.userservice.exceptions.UserExceptions
 import travesium.userservice.kafka.data.ReportingStreamData
 import travesium.userservice.kafka.data.UserEvent
 import travesium.userservice.mapper.UserMapper
-import travesium.userservice.security.TraversiumPrincipal
 import java.time.YearMonth
 
 /**
@@ -197,7 +196,6 @@ class UserService(
     fun countBlockedUsers(): Int {
         val user = getUserFromContext()
 
-        checkAuthorization(user.firebaseId!!, user.email!!)
         return user.blocked.size
     }
 
@@ -210,15 +208,17 @@ class UserService(
     }
 
     private fun checkIfEmailAndFirebaseIdMatch(userFireBaseId: String, userEmail: String, ) {
-        val authenticationPrincipal = SecurityContextHolder.getContext().authentication.principal as TraversiumPrincipal
-        if (authenticationPrincipal.uid != userFireBaseId || authenticationPrincipal.email != userEmail) {
+        val firebaseId = firebaseService.extractUidFromToken(SecurityContextHolder.getContext().authentication.credentials as String)
+        val emailFromToken = firebaseService.extractEmailFromToken(SecurityContextHolder.getContext().authentication.credentials as String)
+        if (firebaseId != userFireBaseId || emailFromToken != userEmail) {
             throw UserExceptions.UnauthorizedException("Users email and firebase id do not match.")
         }
     }
 
     private fun checkAuthorization(userFireBaseId: String, userEmail: String) {
-        val authenticationPrincipal = SecurityContextHolder.getContext().authentication.principal as TraversiumPrincipal
-        if (authenticationPrincipal.uid != userFireBaseId && authenticationPrincipal.email != userEmail) {
+        val firebaseId = firebaseService.extractUidFromToken(SecurityContextHolder.getContext().authentication.credentials as String)
+        val emailFromToken = firebaseService.extractEmailFromToken(SecurityContextHolder.getContext().authentication.credentials as String)
+        if (firebaseId != userFireBaseId && emailFromToken != userEmail) {
             throw UserExceptions.UnauthorizedException("User is not authorized to perform this action.")
         }
     }

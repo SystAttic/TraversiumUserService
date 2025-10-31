@@ -15,7 +15,7 @@ import travesium.userservice.security.FirebaseAuthenticationFilter
  */
 @Configuration
 @EnableWebSecurity
-//@Profile("auth")
+//@("auth")
 class FirebaseFilterConfig {
 
     @Bean
