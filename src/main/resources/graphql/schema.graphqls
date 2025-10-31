@@ -1,0 +1,18 @@
+type Query {
+  user(username: String, email: String): User
+}
+
+type User {
+  userId: ID
+  username: String!
+  email: String
+  description: String
+  displayName: String
+  firebaseId: String
+  avatarPhotoReference: String
+  coverPhotoReference: String
+  following: [User]
+  followers: [User]
+  blocked: [User]
+  deleted: Boolean
+}

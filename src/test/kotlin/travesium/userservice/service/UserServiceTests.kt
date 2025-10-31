@@ -33,7 +33,7 @@ class UserServiceTest {
 
     @Test
     fun `createUser success`() {
-        val userDto = UserDto(userId = 123, username = "test", email = "test@example.com")
+        val userDto = UserDto(username = "test", email = "test@example.com")
         whenever(userRepository.save(UserMapper.toEntity(userDto))).thenAnswer { it.arguments[0] }
 
         val result = userService.createUser(userDto)
@@ -44,9 +44,8 @@ class UserServiceTest {
 
     @Test
     fun `createUser username exists`() {
-        val userDto = UserDto(userId = 123, username = "test", email = "test@example.com")
-        whenever(userRepository.findByUserId(userDto.userId!!)).thenReturn(Optional.empty())
-        whenever(userRepository.findByUsername(userDto.username)).thenReturn(Optional.of(mock()))
+        val userDto = UserDto(username = "test", email = "test@example.com")
+        whenever(userRepository.findByUsername(userDto.username!!)).thenReturn(Optional.of(mock()))
 
         assertThrows(UserExceptions.UserAlreadyExistsException::class.java) {
             userService.createUser(userDto)
@@ -55,10 +54,9 @@ class UserServiceTest {
 
     @Test
     fun `createUser email exists`() {
-        val userDto = UserDto(userId = 123, username = "test", email = "test@example.com")
-        whenever(userRepository.findByUserId(userDto.userId!!)).thenReturn(Optional.empty())
-        whenever(userRepository.findByUsername(userDto.username)).thenReturn(Optional.empty())
-        whenever(userRepository.findByEmail(userDto.email)).thenReturn(Optional.of(mock()))
+        val userDto = UserDto(username = "test", email = "test@example.com")
+        whenever(userRepository.findByUsername(userDto.username!!)).thenReturn(Optional.empty())
+        whenever(userRepository.findByEmail(userDto.email!!)).thenReturn(Optional.of(mock()))
 
         assertThrows(UserExceptions.UserAlreadyExistsException::class.java) {
             userService.createUser(userDto)
@@ -138,12 +136,12 @@ class UserServiceTest {
 
     @Test
     fun `updateUser success`() {
-        val existingUser = User(userId = 123, username = "old", email = "ex@123.com")
-        val updatedDto = UserDto(userId = 123, username = "new", email = "ex@123.com")
+        val existingUser = User(userId = 123, email = "ex@123.com", description = "old")
+        val updatedDto = UserDto(userId = 123, email = "ex@123.com", description = "new")
         whenever(userRepository.findByUserId(123)).thenReturn(Optional.of(existingUser))
         whenever(userRepository.save(existingUser)).thenAnswer { it.arguments[0] }
         val result = userService.updateUser(updatedDto)
-        assertEquals("new", result.username)
+        assertEquals("new", result.description)
     }
 
     @Test
