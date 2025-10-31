@@ -28,7 +28,7 @@ class UserService(
             throw UserExceptions.InvalidUserDataException("Username,email and firebase id cannot be null. New user cannot have userId")
         }
 
-        checkIfEmailAndFirebaseIdMatch(userDto.firebaseId, userDto.email)
+        checkAuthorization(userDto.firebaseId, userDto.email)
 
         if (userRepository.findByUsername(userDto.username).isPresent || userRepository.findByEmail(userDto.email).isPresent) {
             throw UserExceptions.UserAlreadyExistsException()
@@ -205,14 +205,6 @@ class UserService(
             action = action
         )
         eventPublisher.publishEvent(event)
-    }
-
-    private fun checkIfEmailAndFirebaseIdMatch(userFireBaseId: String, userEmail: String, ) {
-        val firebaseId = firebaseService.extractUidFromToken(SecurityContextHolder.getContext().authentication.credentials as String)
-        val emailFromToken = firebaseService.extractEmailFromToken(SecurityContextHolder.getContext().authentication.credentials as String)
-        if (firebaseId != userFireBaseId || emailFromToken != userEmail) {
-            throw UserExceptions.UnauthorizedException("Users email and firebase id do not match.")
-        }
     }
 
     private fun checkAuthorization(userFireBaseId: String, userEmail: String) {
