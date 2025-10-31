@@ -15,7 +15,7 @@ import travesium.userservice.service.TenantService
  * @author Maja Razinger
  */
 @Component
-//@Profile("auth")
+//@("auth")
 class FirebaseAuthenticationFilter(
     private val firebaseService: FirebaseService,
     private val tenantService: TenantService

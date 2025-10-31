@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service
  * @author Maja Razinger
  */
 @Service
-//@Profile("auth")
+//@("auth")
 class TenantService {
 
     companion object {
