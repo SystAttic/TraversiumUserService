@@ -54,6 +54,7 @@ class UserService(
         userRepository.delete(user)
     }
 
+    @Transactional
     fun updateUser(userDto: UserDto): UserDto {
         if (userDto.userId == null) {
             throw UserExceptions.InvalidUserDataException("User UID cannot be null for update.")
