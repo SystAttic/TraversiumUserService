@@ -1,6 +1,7 @@
 package travesium.userservice.db.model
 
 import jakarta.persistence.*
+import java.time.OffsetDateTime
 
 /**
  * @author Maja Razinger
@@ -30,6 +31,9 @@ data class User(
 
     @Column(name = "cover_photo_reference")
     val coverPhotoReference: String? = null,
+
+    @Column(name = "created_at", updatable = false)
+    val createdAt: OffsetDateTime = OffsetDateTime.now(),
 
     @ManyToMany
     @JoinTable(
