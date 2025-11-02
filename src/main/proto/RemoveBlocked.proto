@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package traversium.tripservice.removeblocked;
+
+option java_multiple_files = true;
+
+
+service RemoveBlockedService {
+  rpc RemoveBlockedUserRelations(RemoveRequest) returns (RemoveResponse);
+}
+
+message RemoveRequest {
+  string blocker_id = 1;
+  string blocked_id = 2;
+}
+
+message RemoveResponse {
+  string message = 1;
+}

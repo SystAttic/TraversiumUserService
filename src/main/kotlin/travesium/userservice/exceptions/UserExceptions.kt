@@ -11,4 +11,6 @@ class UserExceptions {
     class InvalidUserDataException(message: String) : RuntimeException("Invalid user data: $message")
 
     class UnauthorizedException(message: String) : RuntimeException(message)
+
+    class RemoteServiceException(serviceName: String) : RuntimeException("Error communicating with remote service: $serviceName")
 }
