@@ -64,8 +64,8 @@ class UserFollowingAndBlockedTests@Autowired constructor(
         userService.followUser( "jure")
         userService.followUser("ozbej")
 
-        val dejanFollowers = userService.getFollowers("dejan")
-        val dejanFollowing = userService.getFollowing("dejan")
+        val dejanFollowers = userService.getFollowers("dejan", 0, 10)
+        val dejanFollowing = userService.getFollowing("dejan", 0, 10)
 
         assert(dejanFollowers.isEmpty())
         assert(dejanFollowing.size == 2)
@@ -73,7 +73,7 @@ class UserFollowingAndBlockedTests@Autowired constructor(
         assert(dejanFollowing.any { it.username == "jure" })
         assert(dejanFollowing.any { it.username == "ozbej" })
 
-        val jureFollowers = userService.getFollowers("jure")
+        val jureFollowers = userService.getFollowers("jure", 0, 10)
         assert(jureFollowers.size == 1)
         assert(jureFollowers.any { it.username == "dejan" })
     }
@@ -86,7 +86,7 @@ class UserFollowingAndBlockedTests@Autowired constructor(
         userService.blockUser("ozbej")
         userService.blockUser("jure")
 
-        val majaBlocked = userService.getBlockedUsers()
+        val majaBlocked = userService.getBlockedUsers(0, 10)
         assert(majaBlocked.size == 2)
         assert(majaBlocked.any { it.username == "ozbej" })
         assert(majaBlocked.any { it.username == "jure" })
@@ -109,11 +109,11 @@ class UserFollowingAndBlockedTests@Autowired constructor(
         SecurityContextHolder.getContext().authentication = auth
 
         userService.followUser("jure")
-        var dejanFollowing = userService.getFollowing("dejan")
+        var dejanFollowing = userService.getFollowing("dejan", 0, 10)
         assert(dejanFollowing.size == 1)
 
         userService.unfollowUser( "jure")
-        dejanFollowing = userService.getFollowing("dejan")
+        dejanFollowing = userService.getFollowing("dejan", 0, 10)
         assert(dejanFollowing.isEmpty())
     }
 
@@ -123,11 +123,11 @@ class UserFollowingAndBlockedTests@Autowired constructor(
         SecurityContextHolder.getContext().authentication = auth
 
         userService.blockUser( "ozbej")
-        var majaBlocked = userService.getBlockedUsers()
+        var majaBlocked = userService.getBlockedUsers(0, 10)
         assert(majaBlocked.size == 1)
 
         userService.unblockUser( "ozbej")
-        majaBlocked = userService.getBlockedUsers()
+        majaBlocked = userService.getBlockedUsers(0, 10)
         assert(majaBlocked.isEmpty())
     }
 
@@ -137,14 +137,14 @@ class UserFollowingAndBlockedTests@Autowired constructor(
         SecurityContextHolder.getContext().authentication = auth
 
         userService.followUser( "jure")
-        var dejanFollowing = userService.getFollowing("dejan")
+        var dejanFollowing = userService.getFollowing("dejan", 0, 10)
         assert(dejanFollowing.size == 1)
 
         userService.blockUser( "jure")
-        dejanFollowing = userService.getFollowing("dejan")
+        dejanFollowing = userService.getFollowing("dejan", 0, 10)
         assert(dejanFollowing.isEmpty())
 
-        val jureFollowers = userService.getFollowers("jure")
+        val jureFollowers = userService.getFollowers("jure", 0, 10)
         assert(jureFollowers.isEmpty())
     }
 
@@ -166,6 +166,42 @@ class UserFollowingAndBlockedTests@Autowired constructor(
         assertThrows<UserExceptions.InvalidUserDataException> {
             userService.followUser( "jure")
         }
+    }
+
+    @Test
+    fun getFollowingPagination() {
+        val auth = UsernamePasswordAuthenticationToken("principal", "token1")
+        SecurityContextHolder.getContext().authentication = auth
+
+        userService.followUser( "jure")
+        userService.followUser( "ozbej")
+        userService.followUser( "maja")
+
+        val dejanFollowingPage1 = userService.getFollowing("dejan", 0, 2)
+        assert(dejanFollowingPage1.size == 2)
+        val dejanFollowingPage2 = userService.getFollowing("dejan", 2, 2)
+        assert(dejanFollowingPage2.size == 1)
+
+        assert(dejanFollowingPage1.all { it.username in listOf("jure", "ozbej") })
+        assert(dejanFollowingPage2.all { it.username == "maja" })
+    }
+
+    @Test
+    fun getBlockedUsersPagination() {
+        val auth = UsernamePasswordAuthenticationToken("principal", "token4")
+        SecurityContextHolder.getContext().authentication = auth
+
+        userService.blockUser( "jure")
+        userService.blockUser( "ozbej")
+        userService.blockUser( "dejan")
+
+        val majaBlockedPage1 = userService.getBlockedUsers(0, 2)
+        assert(majaBlockedPage1.size == 2)
+        val majaBlockedPage2 = userService.getBlockedUsers(2, 2)
+        assert(majaBlockedPage2.size == 1)
+
+        assert(majaBlockedPage1.all { it.username in listOf("jure", "ozbej") })
+        assert(majaBlockedPage2.all { it.username == "dejan" })
     }
 
 //    @Test

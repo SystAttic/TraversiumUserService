@@ -1,6 +1,5 @@
 package travesium.userservice.config
 
-import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
@@ -15,20 +14,7 @@ import travesium.userservice.security.FirebaseAuthenticationFilter
  */
 @Configuration
 @EnableWebSecurity
-//@("auth")
 class FirebaseFilterConfig {
-
-    @Bean
-    fun firebaseAuthFilter(
-        firebaseAuthenticationFilter: FirebaseAuthenticationFilter
-    ): FilterRegistrationBean<FirebaseAuthenticationFilter> {
-        val registration = FilterRegistrationBean(
-            firebaseAuthenticationFilter
-        )
-        registration.addUrlPatterns("/rest/*")
-        registration.order = 1
-        return registration
-    }
 
     @Bean
     fun securityFilterChain(
@@ -39,12 +25,15 @@ class FirebaseFilterConfig {
             .csrf { it.disable() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests { auth ->
-                auth.requestMatchers("/rest/**").authenticated()
+                auth
+                    .requestMatchers("/rest/v1/users/exists").permitAll()
+                    .requestMatchers("/rest/**").authenticated()
+                    .requestMatchers("/graphql").authenticated()
                     .anyRequest().permitAll()
             }
             .addFilterBefore(firebaseAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
-            .securityMatcher("/rest/**")
 
         return http.build()
     }
+
 }

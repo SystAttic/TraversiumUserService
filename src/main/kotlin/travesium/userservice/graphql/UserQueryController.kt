@@ -18,10 +18,11 @@ class UserQueryController(
     fun user(
         @Argument username: String?,
         @Argument email: String?): UserDto? {
-        return when {
-            username != null -> userService.getUserByUsername(username)
-            email != null -> userService.getUserByEmail(email)
-            else -> throw IllegalArgumentException("Must provide username or email")
+
+        if (username == null && email == null) {
+            throw IllegalArgumentException("Must provide username or email")
         }
+
+        return userService.getUser(username, email)
     }
 }

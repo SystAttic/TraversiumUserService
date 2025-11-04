@@ -1,6 +1,7 @@
 package travesium.userservice.service
 
 import org.springframework.context.ApplicationEventPublisher
+import org.springframework.data.domain.PageRequest
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -41,9 +42,23 @@ class UserService(
         }
     }
 
-    fun getUserByUsername(username: String): UserDto = UserMapper.toDto(userRepository.findByUsername(username).orElseThrow { UserExceptions.UserNotFoundException() })
+    fun getUser(username: String?, email: String?): UserDto {
+        if (username == null && email == null) {
+            throw UserExceptions.InvalidUserDataException("Username or email must be provided.")
+        }
 
-    fun getUserByEmail(email: String): UserDto = UserMapper.toDto(userRepository.findByEmail(email).orElseThrow { UserExceptions.UserNotFoundException() })
+        return if (username != null) {
+            getUserByUsername(username)
+        } else {
+            getUserByEmail(email!!)
+        }
+    }
+
+    private fun getUserByUsername(username: String): UserDto =
+        UserMapper.toDto(userRepository.findByUsername(username).orElseThrow { UserExceptions.UserNotFoundException() })
+
+    private fun getUserByEmail(email: String): UserDto =
+        UserMapper.toDto(userRepository.findByEmail(email).orElseThrow { UserExceptions.UserNotFoundException() })
 
     @Transactional
     fun deleteUser() {
@@ -74,18 +89,12 @@ class UserService(
     }
 
     @Transactional
-    fun getUsersByUsernames(usernames: List<String>): List<UserDto> {
+    fun getUsersByUsernames(usernames: List<String>, offset: Int, limit: Int): List<UserDto> {
         if (usernames.isEmpty()) return emptyList()
 
-        val batchSize = 1000
-        val results = mutableListOf<User>()
+        val users = userRepository.findByUsernames(usernames, PageRequest.of(offset / limit, limit))
 
-        usernames.chunked(batchSize).forEach { batch ->
-            val users = userRepository.findByUsernames(batch)
-            results.addAll(users)
-        }
-
-        return results.map { UserMapper.toDto(it) }
+        return users.map { UserMapper.toDto(it) }
     }
 
     @Transactional
@@ -124,20 +133,24 @@ class UserService(
         }
     }
 
-    fun getFollowers(username: String): List<UserDto> {
+    fun getFollowers(username: String, offset: Int, limit: Int): List<UserDto> {
         val user = userRepository.findByUsername(username)
             .orElseThrow { UserExceptions.UserNotFoundException() }
 
-        val followers = userRepository.findFollowers(user.userId!!)
+        val pageable = PageRequest.of(offset / limit, limit)
+
+        val followers = userRepository.findFollowers(user.userId!!, pageable)
 
         return followers.map { UserMapper.toDto(it) }
     }
 
-    fun getFollowing(username: String): List<UserDto> {
+    fun getFollowing(username: String, offset: Int, limit: Int): List<UserDto> {
         val user = userRepository.findByUsername(username)
             .orElseThrow { UserExceptions.UserNotFoundException() }
 
-        val following = userRepository.findFollowing(user.userId!!)
+        val pageable = PageRequest.of(offset / limit, limit)
+
+        val following = userRepository.findFollowing(user.userId!!, pageable)
 
         return following.map { UserMapper.toDto(it) }
     }
@@ -185,10 +198,12 @@ class UserService(
         }
     }
 
-    fun getBlockedUsers(): List<UserDto> {
+    fun getBlockedUsers(offset: Int, limit: Int): List<UserDto> {
         val user = getUserFromContext()
 
-        val blockedList = userRepository.findBlocked(user.userId!!)
+        val pageable = PageRequest.of(offset / limit, limit)
+
+        val blockedList = userRepository.findBlocked(user.userId!!, pageable)
 
         return blockedList.map { UserMapper.toDto(it) }
     }
@@ -197,6 +212,15 @@ class UserService(
         val user = getUserFromContext()
 
         return user.blocked.size
+    }
+
+    fun checkIfUserExists(username: String?, email: String?): Boolean {
+        if (username == null && email == null) {
+            throw UserExceptions.InvalidUserDataException("Username or email must be provided.")
+        }
+
+        return (username?.let { userRepository.findByUsername(it).isPresent } == true) ||
+            (email?.let { userRepository.findByEmail(it).isPresent } == true)
     }
 
     private fun publishUserEvent(action: UserEvent) {

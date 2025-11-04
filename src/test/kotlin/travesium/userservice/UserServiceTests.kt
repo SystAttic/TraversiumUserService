@@ -1,4 +1,4 @@
-package travesium.userservice.service
+package travesium.userservice
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -19,6 +19,8 @@ import travesium.userservice.dto.UserDto
 import travesium.userservice.exceptions.UserExceptions
 import travesium.userservice.mapper.UserMapper
 import travesium.userservice.security.BaseSecuritySetup
+import travesium.userservice.service.FirebaseService
+import travesium.userservice.service.UserService
 import java.util.*
 
 /**
@@ -166,6 +168,24 @@ class UserServiceTest : BaseSecuritySetup() {
         assertThrows(UserExceptions.UserNotFoundException::class.java) {
             userService.updateUser(updatedDto)
         }
+    }
+
+    @Test
+    fun `username exists`() {
+        val existingUser = User(userId = 123, email = email, description = "old", firebaseId = firebaseId, username = "testuser")
+        `when`(userRepository.findByUsername("testuser")).thenReturn(Optional.of(existingUser))
+
+        val result = userService.checkIfUserExists("testuser", null)
+        assertEquals(true, result)
+    }
+
+    @Test
+    fun `email exists`() {
+        val existingUser = User(userId = 123, email = email, description = "old", firebaseId = firebaseId, username = "testuser")
+        `when`(userRepository.findByEmail(email)).thenReturn(Optional.of(existingUser))
+
+        val result = userService.checkIfUserExists(null, email)
+        assertEquals(true, result)
     }
 
     private fun setupDefaultFirebaseMocks() {
