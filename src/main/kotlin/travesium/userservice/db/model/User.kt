@@ -35,6 +35,18 @@ data class User(
     @Column(name = "created_at", updatable = false)
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
 
+    @Column(name = "first_name")
+    val firstName: String? = null,
+
+    @Column(name = "last_name")
+    val lastName: String? = null,
+
+    @Column(name = "country_of_origin")
+    val countryOfOrigin: String? = null,
+
+    @Column(name = "gender")
+    val gender: String? = null,
+
     @ManyToMany
     @JoinTable(
         name = "user_followers",
