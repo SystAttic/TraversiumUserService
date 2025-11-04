@@ -9,4 +9,6 @@ class UserExceptions {
     class UserAlreadyExistsException() : RuntimeException("User already exists")
 
     class InvalidUserDataException(message: String) : RuntimeException("Invalid user data: $message")
+
+    class UnauthorizedException(message: String) : RuntimeException(message)
 }

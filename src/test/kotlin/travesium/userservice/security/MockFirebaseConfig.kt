@@ -1,0 +1,34 @@
+package travesium.userservice.security
+
+import com.google.firebase.auth.FirebaseAuth
+import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Primary
+import travesium.userservice.service.FirebaseService
+
+/**
+ * @author Maja Razinger
+ */
+@TestConfiguration
+class MockFirebaseConfig {
+
+    private val tokenMap = mutableMapOf<String, Pair<String, String>>() // token -> (uid, email)
+
+    fun setTokenData(token: String, uid: String, email: String) {
+        tokenMap[token] = uid to email
+    }
+
+    @Bean
+    @Primary
+    fun firebaseService(firebaseAuth: FirebaseAuth): FirebaseService {
+        return object : FirebaseService(firebaseAuth) {
+            override fun extractUidFromToken(token: String): String {
+                return tokenMap[token]?.first ?: "firebase123"
+            }
+
+            override fun extractEmailFromToken(token: String): String {
+                return tokenMap[token]?.second ?: "test@example.com"
+            }
+        }
+    }
+}

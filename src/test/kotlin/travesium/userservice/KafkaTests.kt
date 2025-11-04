@@ -27,6 +27,8 @@ import org.springframework.transaction.annotation.Transactional
 import travesium.userservice.dto.UserDto
 import travesium.userservice.kafka.data.ReportingStreamData
 import travesium.userservice.kafka.data.UserEvent
+import travesium.userservice.security.BaseSecuritySetup
+import travesium.userservice.security.MockFirebaseConfig
 import travesium.userservice.service.UserService
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.test.Test
@@ -45,9 +47,9 @@ import kotlin.test.Test
         "spring.kafka.consumer.group-id=user-service-tests",
     ]
 )
-@ContextConfiguration(classes = [KafkaTests.KafkaConsumerConfiguration::class])
+@ContextConfiguration(classes = [KafkaTests.KafkaConsumerConfiguration::class, MockFirebaseConfig::class])
 @ActiveProfiles("test")
-class KafkaTests() {
+class KafkaTests() : BaseSecuritySetup() {
 
     @Autowired
     private lateinit var userService: UserService
@@ -63,7 +65,7 @@ class KafkaTests() {
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     fun createUser() {
-        val userDto = UserDto(userId = 123, username = "test", email = "test@example.com")
+        val userDto = UserDto(username = "test", email = email, firebaseId = firebaseId)
         userService.createUser(userDto)
 
         waitForSize(1) { reportingKafkaConsumer.getMessages().size }
@@ -71,13 +73,13 @@ class KafkaTests() {
         assert(messages.size == 1)
         val receivedData = messages[0] as ReportingStreamData
         assert(receivedData.action == UserEvent.USER_CREATED)
-        userService.deleteUserByUsername("test")
+        userService.deleteUser()
     }
 
     @Test
     @Transactional
     fun createUserRollback() {
-        val userDto = UserDto(userId = 123, username = "test", email = "test@example.com")
+        val userDto = UserDto(username = "test", email = email, firebaseId = firebaseId)
         userService.createUser(userDto)
 
         waitForSize(0) { reportingKafkaConsumer.getMessages().size }
@@ -86,26 +88,11 @@ class KafkaTests() {
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     fun deleteUserByUsername() {
-        val userDto = UserDto(userId = 123, username = "test", email = "nekinekineki@example.com")
+        val userDto = UserDto(username = "test", email = email, firebaseId = firebaseId)
         userService.createUser(userDto)
         waitForSize(1) { reportingKafkaConsumer.getMessages().size }
         reportingKafkaConsumer.clearMessages()
-        userService.deleteUserByUsername("test")
-        waitForSize(1) { reportingKafkaConsumer.getMessages().size }
-        val messages = reportingKafkaConsumer.getMessages()
-        assert(messages.size == 1)
-        val receivedData = messages[0] as ReportingStreamData
-        assert(receivedData.action == UserEvent.USER_DELETED)
-    }
-
-    @Test
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    fun deleteUserByEmail() {
-        val userDto = UserDto(userId = 123, username = "test", email = "nekinekineki@example.com")
-        userService.createUser(userDto)
-        waitForSize(1) { reportingKafkaConsumer.getMessages().size }
-        reportingKafkaConsumer.clearMessages()
-        userService.deleteUserByEmail("nekinekineki@example.com")
+        userService.deleteUser()
         waitForSize(1) { reportingKafkaConsumer.getMessages().size }
         val messages = reportingKafkaConsumer.getMessages()
         assert(messages.size == 1)

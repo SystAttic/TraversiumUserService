@@ -18,6 +18,8 @@ interface UserRepository : JpaRepository<User, String> {
 
     fun findByUserId(userId : Long) : Optional<User>
 
+    fun findByFirebaseId(firebaseId: String) : Optional<User>
+
     @Query("SELECT u.followers FROM User u WHERE u.userId = :userId")
     fun findFollowers(@Param("userId") userId: Long): List<User>
 
@@ -26,4 +28,7 @@ interface UserRepository : JpaRepository<User, String> {
 
     @Query("SELECT u.blocked FROM User u WHERE u.id = :userId")
     fun findBlocked(@Param("userId") userId: Long): List<User>
+
+    @Query("SELECT u FROM User u WHERE u.username IN :usernames")
+    fun findByUsernames(@Param("usernames") usernames: List<String>): List<User>
 }

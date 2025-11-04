@@ -32,6 +32,9 @@ data class User(
     @Column(name = "cover_photo_reference")
     val coverPhotoReference: String? = null,
 
+    @Column(name = "firebase_id", unique = true)
+    val firebaseId: String? = null,
+
     @Column(name = "created_at", updatable = false)
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
 
