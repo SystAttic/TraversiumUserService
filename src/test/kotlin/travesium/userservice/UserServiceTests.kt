@@ -94,7 +94,7 @@ class UserServiceTest : BaseSecuritySetup() {
         val user = User(username = "test", email = "test@example.com", firebaseId = "firebase123")
         `when`(userRepository.findByUsername("test")).thenReturn(Optional.of(user))
 
-        val result = userService.getUserByUsername("test")
+        val result = userService.getUser("test", null)
 
         assertEquals(user.username, result.username)
     }
@@ -104,7 +104,7 @@ class UserServiceTest : BaseSecuritySetup() {
         `when`(userRepository.findByUsername("test")).thenReturn(Optional.empty())
 
         assertThrows(UserExceptions.UserNotFoundException::class.java) {
-            userService.getUserByUsername("test")
+            userService.getUser("test", null)
         }
     }
 
@@ -113,7 +113,7 @@ class UserServiceTest : BaseSecuritySetup() {
         val user = User(username = "test", email = "test@example.com", firebaseId = "firebase123")
         `when`(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user))
 
-        val result = userService.getUserByEmail("test@example.com")
+        val result = userService.getUser(null, "test@example.com")
 
         assertEquals(user.email, result.email)
     }
@@ -123,7 +123,7 @@ class UserServiceTest : BaseSecuritySetup() {
         `when`(userRepository.findByEmail("test@example.com")).thenReturn(Optional.empty())
 
         assertThrows(UserExceptions.UserNotFoundException::class.java) {
-            userService.getUserByEmail("test@example.com")
+            userService.getUser(null, "test@example.com")
         }
     }
 
