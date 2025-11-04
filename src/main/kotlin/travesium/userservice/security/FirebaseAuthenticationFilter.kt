@@ -17,7 +17,8 @@ import travesium.userservice.service.TenantService
 @Component
 class FirebaseAuthenticationFilter(
     private val firebaseService: FirebaseService,
-    private val tenantService: TenantService
+    private val tenantService: TenantService,
+    private val firebaseAuth: FirebaseAuth,
 ) : OncePerRequestFilter(){
     override fun doFilterInternal(
         request: HttpServletRequest,
@@ -31,11 +32,11 @@ class FirebaseAuthenticationFilter(
             }
             val token = authHeader.removePrefix("Bearer ").trim()
 
-            val decodedToken = FirebaseAuth.getInstance().verifyIdToken(token)
+            val decodedToken = firebaseAuth.verifyIdToken(token)
             val uid = decodedToken.uid
 
             SecurityContextHolder.getContext().authentication = TraversiumAuthentication(
-                userRecordToPrincipal(FirebaseAuth.getInstance().getUser(uid)),
+                userRecordToPrincipal(firebaseAuth.getUser(uid)),
                 null,
                 emptyList(),
                 token

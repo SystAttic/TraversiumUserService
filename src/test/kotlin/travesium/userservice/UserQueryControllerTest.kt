@@ -40,6 +40,7 @@ class UserQueryControllerTest() : BaseSecuritySetup() {
         setupDefaultAuth()
 
         val client = WebTestClient.bindToServer()
+            .defaultHeader("Authorization", "Bearer $token")
             .baseUrl("http://localhost:$port/graphql")
             .build()
 
