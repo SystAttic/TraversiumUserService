@@ -15,7 +15,6 @@ import travesium.userservice.service.TenantService
  * @author Maja Razinger
  */
 @Component
-//@("auth")
 class FirebaseAuthenticationFilter(
     private val firebaseService: FirebaseService,
     private val tenantService: TenantService
@@ -59,4 +58,9 @@ class FirebaseAuthenticationFilter(
         //PersonalDataType.GOOGLE,
         userRecord.photoUrl
     )
+
+    override fun shouldNotFilter(request: HttpServletRequest): Boolean {
+        val path = request.requestURI
+        return path == "/rest/v1/users/exists"
+    }
 }

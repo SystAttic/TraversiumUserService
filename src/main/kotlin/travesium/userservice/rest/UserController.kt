@@ -66,7 +66,7 @@ class UserController(private val userService: UserService) : Logging {
         }
     }
 
-    @GetMapping("/username/{username}")
+    @GetMapping
     @Operation(
         operationId = "getUserByUsername",
         tags = ["User"],
@@ -87,48 +87,22 @@ class UserController(private val userService: UserService) : Logging {
             )
         ]
     )
-    fun getUserByUsername(@PathVariable username: String): ResponseEntity<Any> {
-        return try {
-            val user = userService.getUserByUsername(username)
-            logger.info("User with the username ${user.username} found.")
-            ResponseEntity.ok(user)
-        } catch (_: UserExceptions.UserNotFoundException){
-            logger.info("User with the username $username not found.")
-            ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("message" to "User not found"))
+    fun getUser(
+        @RequestParam username: String?,
+        @RequestParam email: String?,
+    ): ResponseEntity<Any> {
+        if (username.isNullOrBlank() && email.isNullOrBlank()) {
+            logger.info("Neither username nor email provided for existence check.")
+            return ResponseEntity.badRequest().body(mapOf("message" to "Either username or email must be provided"))
         }
-    }
 
-    @GetMapping("/email/{email}")
-    @Operation(
-        operationId = "getUserByEmail",
-        tags = ["User"],
-        summary = "Get a user by email.",
-        description = "Get a user by email.",
-        responses = [
-            ApiResponse(
-                responseCode = "200",
-                description = "Successfully retrieved the user by email.",
-                content = [Content(
-                    mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = UserDto::class)
-                )]
-            ),
-            ApiResponse(
-                responseCode = "404",
-                description = "Not found - User not found."
-            )
-        ]
-    )
-    fun getUserByEmail(@PathVariable email: String): ResponseEntity<Any> {
         return try {
-            val user = userService.getUserByEmail(email)
-            logger.info("User with the email ${user.email} found.")
+            val user = userService.getUser(username, email)
+            logger.info("User with the username  ${username ?: "N/A"}} or email  ${email ?: "N/A"} found.")
             ResponseEntity.ok(user)
         } catch (_: UserExceptions.UserNotFoundException){
-            logger.info("User with the email $email not found.")
-            ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                mapOf("message" to "User not found")
-            )
+            logger.info("User with the username  ${username ?: "N/A"} or email  ${email ?: "N/A"} not found.")
+            ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("message" to "User not found"))
         }
     }
 
@@ -204,7 +178,6 @@ class UserController(private val userService: UserService) : Logging {
         }
     }
 
-    // TODO: figure out how to protect this one
     @PostMapping("/userList")
     @Operation(
         operationId = "userList",
@@ -226,9 +199,13 @@ class UserController(private val userService: UserService) : Logging {
             )
         ]
     )
-    fun listOfUsers(@RequestBody usernames: List<String>): ResponseEntity<Any> {
+    fun listOfUsers(
+        @RequestBody usernames: List<String>,
+        @RequestParam offset: Int,
+        @RequestParam limit: Int
+        ): ResponseEntity<Any> {
         return try {
-            val users = userService.getUsersByUsernames(usernames)
+            val users = userService.getUsersByUsernames(usernames, offset, limit)
             logger.info("Retrieved list of users for provided usernames.")
             ResponseEntity.ok(users)
         } catch (e: Exception) {
@@ -319,7 +296,6 @@ class UserController(private val userService: UserService) : Logging {
         }
     }
 
-    // TODO: pagination?
     @GetMapping("/{username}/followers")
     @Operation(
         operationId = "getFollowers",
@@ -342,10 +318,12 @@ class UserController(private val userService: UserService) : Logging {
         ]
     )
     fun getFollowers(
-        @PathVariable username: String
+        @PathVariable username: String,
+        @RequestParam offset: Int,
+        @RequestParam limit: Int
     ): ResponseEntity<List<UserDto>> {
         try {
-            return ResponseEntity.ok(userService.getFollowers(username))
+            return ResponseEntity.ok(userService.getFollowers(username, offset, limit))
         } catch (e: UserExceptions.UserNotFoundException) {
             logger.info("User with the username $username not found.")
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(emptyList())
@@ -374,10 +352,12 @@ class UserController(private val userService: UserService) : Logging {
         ]
     )
     fun getFollowing(
-        @PathVariable username: String
+        @PathVariable username: String,
+        @RequestParam offset: Int,
+        @RequestParam limit: Int
     ): ResponseEntity<List<UserDto>> {
         try {
-            return ResponseEntity.ok(userService.getFollowing(username))
+            return ResponseEntity.ok(userService.getFollowing(username, offset, limit))
         } catch (e: UserExceptions.UserNotFoundException) {
             logger.info("User with the username $username not found.")
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(emptyList())
@@ -550,9 +530,12 @@ class UserController(private val userService: UserService) : Logging {
             )
         ]
     )
-    fun getBlockedUsers(): ResponseEntity<List<UserDto>> {
+    fun getBlockedUsers(
+        @RequestParam offset: Int,
+        @RequestParam limit: Int
+    ): ResponseEntity<List<UserDto>> {
         try {
-            return ResponseEntity.ok(userService.getBlockedUsers())
+            return ResponseEntity.ok(userService.getBlockedUsers(offset, limit))
         } catch (e: UserExceptions.UserNotFoundException) {
             logger.info("User not found.")
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(emptyList())
@@ -591,6 +574,40 @@ class UserController(private val userService: UserService) : Logging {
             logger.info("User not found.")
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(0)
         }
+    }
+
+    @GetMapping("/exists")
+    @Operation(
+        operationId = "checkUserExists",
+        tags = ["User"],
+        summary = "Check if a user exists by username or email.",
+        description = "Check if a user exists by providing either a username or an email.",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Successfully checked user existence.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = Boolean::class)
+                )]
+            ),
+            ApiResponse(
+                responseCode = "400",
+                description = "Bad Request - Neither username nor email provided."
+            )
+        ]
+    )
+    fun checkIfUserExists(
+        @RequestParam(required = false) username: String?,
+        @RequestParam(required = false) email: String?
+    ): ResponseEntity<Any> {
+        if (username.isNullOrBlank() && email.isNullOrBlank()) {
+            logger.info("Neither username nor email provided for existence check.")
+            return ResponseEntity.badRequest().body(mapOf("message" to "Either username or email must be provided"))
+        }
+
+        val exists = userService.checkIfUserExists(username, email)
+        return ResponseEntity.ok(mapOf("exists" to exists))
     }
 
     // TODO: delete users da se tudi iz collection izbriše (da tm k se collectioni prkazujejo, ne prikaže teh k so izbrisani, oke tole samo če bo čas)
