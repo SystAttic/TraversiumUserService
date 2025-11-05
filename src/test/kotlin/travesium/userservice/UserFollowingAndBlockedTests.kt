@@ -23,7 +23,7 @@ import travesium.userservice.service.UserService
 /**
  * @author Maja Razinger
  */
-@AutoConfigureTestDatabase
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 @ActiveProfiles("test")
 @SpringBootTest(classes = [UserServiceApplication::class], webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ExtendWith(SpringExtension::class)
