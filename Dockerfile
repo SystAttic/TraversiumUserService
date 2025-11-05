@@ -1,4 +1,4 @@
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jdk
 MAINTAINER Traversium Developers
 WORKDIR /opt/user-service
 
