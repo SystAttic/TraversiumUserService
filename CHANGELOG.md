@@ -22,7 +22,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RESTful API for user management
 - Docker support with multi-platform builds (amd64, arm64)
 - GitHub Actions CI/CD pipeline
-- gRPC support for inter-service communication
 
 ### Security
 - Implemented JWT-based authentication
