@@ -10,7 +10,7 @@
     </parent>
     <groupId>travesium</groupId>
     <artifactId>UserService</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>UserService</name>
     <description>UserService</description>
     <url/>
