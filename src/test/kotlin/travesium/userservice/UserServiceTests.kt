@@ -134,7 +134,7 @@ class UserServiceTest : BaseSecuritySetup() {
         `when`(userRepository.findByFirebaseId(firebaseId)).thenReturn(Optional.of(user))
 
         userService.deleteUser()
-        verify(userRepository).delete(user)
+        verify(userRepository).save(user.copy(deleted = true))
     }
 
     @Test

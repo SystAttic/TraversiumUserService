@@ -6,7 +6,7 @@ package travesium.userservice.exceptions
 class UserExceptions {
     class UserNotFoundException : RuntimeException("User not found")
 
-    class UserAlreadyExistsException() : RuntimeException("User already exists")
+    class UserAlreadyExistsException(message: String) : RuntimeException(message)
 
     class InvalidUserDataException(message: String) : RuntimeException("Invalid user data: $message")
 

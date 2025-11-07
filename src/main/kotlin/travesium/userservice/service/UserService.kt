@@ -32,7 +32,7 @@ class UserService(
         checkAuthorization(userDto.firebaseId, userDto.email)
 
         if (userRepository.findByUsername(userDto.username).isPresent || userRepository.findByEmail(userDto.email).isPresent) {
-            throw UserExceptions.UserAlreadyExistsException()
+            throw UserExceptions.UserAlreadyExistsException("User with username '${userDto.username}' or email '${userDto.email}' already exists")
         }
 
         return UserMapper.toEntity(userDto).let { user ->
