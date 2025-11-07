@@ -64,8 +64,10 @@ class UserService(
     fun deleteUser() {
         val user = getUserFromContext()
 
+        val deletedUser = user.copy(deleted = true)
+        userRepository.save(deletedUser)
+
         publishUserEvent(UserEvent.USER_DELETED)
-        userRepository.delete(user)
     }
 
     @Transactional
@@ -81,7 +83,11 @@ class UserService(
             displayName = userDto.displayName ?: existingUser.displayName,
             description = userDto.description ?: existingUser.description,
             avatarPhotoReference = userDto.avatarPhotoReference ?: existingUser.avatarPhotoReference,
-            coverPhotoReference = userDto.coverPhotoReference ?: existingUser.coverPhotoReference
+            coverPhotoReference = userDto.coverPhotoReference ?: existingUser.coverPhotoReference,
+            firstName = userDto.firstName ?: existingUser.firstName,
+            lastName = userDto.lastName ?: existingUser.lastName,
+            countryOfOrigin = userDto.countryOfOrigin ?: existingUser.countryOfOrigin,
+            gender =  userDto.gender ?: existingUser.gender
         )
 
         userRepository.save(updatedUser)
