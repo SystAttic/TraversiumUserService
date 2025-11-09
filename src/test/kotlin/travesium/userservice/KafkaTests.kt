@@ -25,6 +25,7 @@ import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.TestPropertySource
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
+import travesium.userservice.db.repository.UserRepository
 import travesium.userservice.dto.UserDto
 import travesium.userservice.kafka.data.ReportingStreamData
 import travesium.userservice.kafka.data.UserEvent
@@ -59,9 +60,13 @@ class KafkaTests() : BaseSecuritySetup() {
     @Autowired 
     lateinit var reportingKafkaConsumer: ReportingKafkaConsumer
 
+    @Autowired
+    lateinit var userRepository: UserRepository
+
     @BeforeEach
     fun beforeEach() {
         reportingKafkaConsumer.clearMessages()
+        userRepository.deleteAll()
     }
 
     @Test
@@ -75,7 +80,6 @@ class KafkaTests() : BaseSecuritySetup() {
         assert(messages.size == 1)
         val receivedData = messages[0] as ReportingStreamData
         assert(receivedData.action == UserEvent.USER_CREATED)
-        userService.deleteUser()
     }
 
     @Test
