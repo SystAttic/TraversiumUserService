@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
+import org.springframework.util.AntPathMatcher
 import org.springframework.web.filter.OncePerRequestFilter
 import travesium.userservice.service.FirebaseService
 import travesium.userservice.service.TenantService
@@ -20,6 +21,9 @@ class FirebaseAuthenticationFilter(
     private val tenantService: TenantService,
     private val firebaseAuth: FirebaseAuth,
 ) : OncePerRequestFilter(){
+
+    private val pathMatcher = AntPathMatcher()
+
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
@@ -61,11 +65,18 @@ class FirebaseAuthenticationFilter(
     )
 
     override fun shouldNotFilter(request: HttpServletRequest): Boolean {
-        val path = request.requestURI
-        return path == "/rest/v1/users/exists" ||
-            path.startsWith("/swagger-ui") ||
-            path.startsWith("/v3/api-docs") ||
-            path.startsWith("/swagger-resources") ||
-            path == "/swagger-ui.html"
+        val path = request.requestURI.removePrefix(request.contextPath)
+
+        val exactPaths = setOf(
+            "/rest/v1/users/exists",
+            "/swagger-ui.html"
+        )
+        val prefixPaths = listOf(
+            "/swagger-ui",
+            "/v3/api-docs",
+            "/swagger-resources"
+        )
+
+        return path in exactPaths || prefixPaths.any { path.startsWith(it) }
     }
 }
