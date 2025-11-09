@@ -29,6 +29,12 @@ class FirebaseFilterConfig {
                     .requestMatchers("/rest/v1/users/exists").permitAll()
                     .requestMatchers("/rest/**").authenticated()
                     .requestMatchers("/graphql").authenticated()
+                    .requestMatchers(
+                        "/swagger-ui/**",
+                        "/v3/api-docs/**",
+                        "/swagger-resources/**",
+                        "/swagger-ui.html"
+                    ).permitAll()
                     .anyRequest().permitAll()
             }
             .addFilterBefore(firebaseAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
