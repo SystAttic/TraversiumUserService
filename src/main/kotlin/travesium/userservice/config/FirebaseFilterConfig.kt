@@ -35,6 +35,7 @@ class FirebaseFilterConfig {
                         "/swagger-resources/**",
                         "/swagger-ui.html"
                     ).permitAll()
+                    .requestMatchers("/internal/**").permitAll()
                     .anyRequest().permitAll()
             }
             .addFilterBefore(firebaseAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
