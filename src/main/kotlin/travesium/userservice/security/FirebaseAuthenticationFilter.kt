@@ -62,6 +62,10 @@ class FirebaseAuthenticationFilter(
 
     override fun shouldNotFilter(request: HttpServletRequest): Boolean {
         val path = request.requestURI
-        return path == "/rest/v1/users/exists"
+        return path == "/rest/v1/users/exists" ||
+            path.startsWith("/swagger-ui") ||
+            path.startsWith("/v3/api-docs") ||
+            path.startsWith("/swagger-resources") ||
+            path == "/swagger-ui.html"
     }
 }
