@@ -269,6 +269,17 @@ class UserService(
             (email?.let { userRepository.findByEmail(it).isPresent } == true)
     }
 
+    fun searchUsersByUsername(query: String, offset: Int, limit: Int): List<UserDto> {
+        if (query.isBlank()) {
+            return emptyList()
+        }
+
+        val pageable = PageRequest.of(offset / limit, limit)
+        val users = userRepository.searchUsersByUsername(query, pageable)
+
+        return users.map { UserMapper.toDto(it) }
+    }
+
     private fun publishUserEvent(action: UserEvent) {
         val event = ReportingStreamData(
             timestamp = YearMonth.now(),
