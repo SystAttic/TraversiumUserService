@@ -23,6 +23,5 @@ class WebConfig : WebMvcConfigurer {
     override fun addInterceptors(registry: InterceptorRegistry) {
         registry.addInterceptor(TenantInterceptor())
             .addPathPatterns("/rest/v1/**")
-            .excludePathPatterns("/internal/**")
     }
 }
