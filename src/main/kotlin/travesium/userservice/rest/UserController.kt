@@ -172,8 +172,8 @@ class UserController(private val userService: UserService) : Logging {
     )
     fun listOfUsers(
         @RequestBody usernames: List<String>,
-        @RequestParam offset: Int,
-        @RequestParam limit: Int
+        @RequestParam(defaultValue = "0") offset: Int,
+        @RequestParam(defaultValue = "20") limit: Int
         ): ResponseEntity<List<UserDto>> {
         val users = userService.getUsersByUsernames(usernames, offset, limit)
         logger.info("Retrieved list of users for provided usernames.")
@@ -269,8 +269,8 @@ class UserController(private val userService: UserService) : Logging {
     )
     fun getFollowers(
         @PathVariable username: String,
-        @RequestParam offset: Int,
-        @RequestParam limit: Int
+        @RequestParam(defaultValue = "0") offset: Int,
+        @RequestParam(defaultValue = "20") limit: Int
     ): ResponseEntity<List<UserDto>> {
         return ResponseEntity.ok(userService.getFollowers(username, offset, limit))
     }
@@ -298,8 +298,8 @@ class UserController(private val userService: UserService) : Logging {
     )
     fun getFollowing(
         @PathVariable username: String,
-        @RequestParam offset: Int,
-        @RequestParam limit: Int
+        @RequestParam(defaultValue = "0") offset: Int,
+        @RequestParam(defaultValue = "20") limit: Int
     ): ResponseEntity<List<UserDto>> {
         return ResponseEntity.ok(userService.getFollowing(username, offset, limit))
     }
@@ -447,8 +447,8 @@ class UserController(private val userService: UserService) : Logging {
         ]
     )
     fun getBlockedUsers(
-        @RequestParam offset: Int,
-        @RequestParam limit: Int
+        @RequestParam(defaultValue = "0") offset: Int,
+        @RequestParam(defaultValue = "20") limit: Int
     ): ResponseEntity<List<UserDto>> {
         return ResponseEntity.ok(userService.getBlockedUsers(offset, limit))
     }

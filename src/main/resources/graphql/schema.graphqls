@@ -11,8 +11,5 @@ type User {
   firebaseId: String
   avatarPhotoReference: String
   coverPhotoReference: String
-  following: [User]
-  followers: [User]
-  blocked: [User]
   deleted: Boolean
 }

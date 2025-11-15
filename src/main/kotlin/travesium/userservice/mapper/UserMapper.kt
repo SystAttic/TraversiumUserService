@@ -8,7 +8,7 @@ import travesium.userservice.dto.UserDto
  */
 object UserMapper {
 
-    fun toDto(user: User, shallow: Boolean = false): UserDto {
+    fun toDto(user: User): UserDto {
         return UserDto(
             userId = user.userId,
             username = user.username,
@@ -23,14 +23,11 @@ object UserMapper {
             gender = user.gender,
             description = user.description,
             firebaseId = user.firebaseId,
-            deleted = user.deleted,
-            following = if (!shallow) user.following.map { toDto(it, true) }.toSet() else emptySet(),
-            followers = if (!shallow) user.followers.map { toDto(it, true) }.toSet() else emptySet(),
-            blocked = if (!shallow) user.blocked.map { toDto(it, true) }.toSet() else emptySet()
+            deleted = user.deleted
         )
     }
 
-    fun toEntity(dto: UserDto, shallow: Boolean = false): User {
+    fun toEntity(dto: UserDto): User {
         return User(
             userId = dto.userId,
             username = dto.username,
@@ -45,10 +42,7 @@ object UserMapper {
             gender = dto.gender,
             description = dto.description,
             firebaseId = dto.firebaseId,
-            deleted = dto.deleted,
-            following = if (!shallow) dto.following.map { toEntity(it, true) }.toMutableSet() else mutableSetOf(),
-            followers = if (!shallow) dto.followers.map { toEntity(it, true) }.toMutableSet() else mutableSetOf(),
-            blocked = if (!shallow) dto.blocked.map { toEntity(it, true) }.toMutableSet() else mutableSetOf()
+            deleted = dto.deleted
         )
     }
 }
