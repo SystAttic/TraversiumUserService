@@ -8,7 +8,6 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
-import org.springframework.util.AntPathMatcher
 import org.springframework.web.filter.OncePerRequestFilter
 import traversium.commonmultitenancy.TenantContext
 import traversium.commonmultitenancy.TenantUtils
@@ -20,8 +19,6 @@ import traversium.commonmultitenancy.TenantUtils
 class FirebaseAuthenticationFilter(
     private val firebaseAuth: FirebaseAuth,
 ) : OncePerRequestFilter(){
-
-    private val pathMatcher = AntPathMatcher()
 
     override fun doFilterInternal(
         request: HttpServletRequest,

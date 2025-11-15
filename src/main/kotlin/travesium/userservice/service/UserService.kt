@@ -1,17 +1,21 @@
 package travesium.userservice.service
 
+import org.apache.logging.log4j.kotlin.logger
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageRequest
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import traversium.notification.kafka.NotificationStreamData
 import travesium.userservice.db.model.User
 import travesium.userservice.db.repository.UserRepository
 import travesium.userservice.dto.UserDto
 import travesium.userservice.exceptions.UserExceptions
 import travesium.userservice.kafka.data.ReportingStreamData
 import travesium.userservice.kafka.data.UserEvent
+import travesium.userservice.kafka.publisher.NotificationPublisher
 import travesium.userservice.mapper.UserMapper
+import java.time.OffsetDateTime
 import java.time.YearMonth
 
 /**
@@ -21,7 +25,8 @@ import java.time.YearMonth
 class UserService(
     private val userRepository: UserRepository,
     private val eventPublisher: ApplicationEventPublisher,
-    private val firebaseService: FirebaseService) {
+    private val firebaseService: FirebaseService,
+    private val notificationPublisher: NotificationPublisher?){
 
     @Transactional
     fun createUser(userDto: UserDto): UserDto {
@@ -42,6 +47,7 @@ class UserService(
         }
     }
 
+    @Transactional
     fun getUser(username: String?, email: String?): UserDto {
         if (username == null && email == null) {
             throw UserExceptions.InvalidUserDataException("Username or email must be provided.")
@@ -56,6 +62,7 @@ class UserService(
 
     private fun getUserByUsername(username: String): UserDto =
         UserMapper.toDto(userRepository.findByUsername(username).orElseThrow { UserExceptions.UserNotFoundException() })
+
 
     private fun getUserByEmail(email: String): UserDto =
         UserMapper.toDto(userRepository.findByEmail(email).orElseThrow { UserExceptions.UserNotFoundException() })
@@ -118,8 +125,14 @@ class UserService(
             throw UserExceptions.InvalidUserDataException("Cannot follow a user who has blocked you.")
         }
 
-        if (followed !in follower.following) {
+        if (followed in follower.blocked) {
+            throw UserExceptions.InvalidUserDataException("Cannot follow a user you have blocked.")
+        }
+
+        if (!userRepository.checkIfUserAIsFollowingUserB(follower.userId!!, followed.userId!!)) {
             follower.following.add(followed)
+
+            publishFollowNotification(follower.username!!, followed.username!!)
         }
     }
 
@@ -134,8 +147,9 @@ class UserService(
             throw UserExceptions.InvalidUserDataException("User cannot unfollow themselves.")
         }
 
-        if (followed in follower.following) {
-            follower.following.remove(followed)
+        if (userRepository.checkIfUserAIsFollowingUserB(follower.userId!!, followed.userId!!)) {
+            userRepository.removeFollowerByUserId(follower.userId, followed.userId)
+            logger.info { "User $followedUsername has been unfollowed" }
         }
     }
 
@@ -186,10 +200,8 @@ class UserService(
             blocker.blocked.add(blocked)
         }
 
-        blocker.following.remove(blocked)
-        blocker.followers.remove(blocked)
-        blocked.following.remove(blocker)
-        blocked.followers.remove(blocker)
+        userRepository.removeFollowerByUserId(blocker.userId!!, blocked.userId!!)
+        userRepository.removeFollowerByUserId(blocked.userId, blocker.userId)
     }
 
     @Transactional
@@ -235,6 +247,20 @@ class UserService(
             action = action
         )
         eventPublisher.publishEvent(event)
+    }
+
+    private fun publishFollowNotification(followerUsername: String, followedUsername: String) {
+        val event = NotificationStreamData(
+            senderId = followerUsername,
+            receiverIds = listOf(followedUsername),
+            action = "FOLLOW",
+            timestamp = OffsetDateTime.now(),
+            collectionReferenceId = null,
+            nodeReferenceId = null,
+            commentReferenceId = null
+        )
+
+        notificationPublisher?.publish(event)
     }
 
     private fun checkAuthorization(userFireBaseId: String, userEmail: String) {

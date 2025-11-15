@@ -19,8 +19,5 @@ data class UserDto(
     val gender: String? = null,
     val description: String? = null,
     val firebaseId : String? = null,
-    val following: Set<UserDto> = emptySet(),
-    val followers: Set<UserDto> = emptySet(),
-    val blocked: Set<UserDto> = emptySet(),
     val deleted: Boolean = false
 )

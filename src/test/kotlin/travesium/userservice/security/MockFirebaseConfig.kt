@@ -1,8 +1,10 @@
 package travesium.userservice.security
 
+import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseToken
 import com.google.firebase.auth.UserRecord
+import org.mockito.Answers
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
@@ -25,8 +27,14 @@ class MockFirebaseConfig {
 
     @Bean
     @Primary
+    fun initializeFirebase(): FirebaseApp {
+        return mock(FirebaseApp::class.java)
+    }
+
+    @Bean
+    @Primary
     fun firebaseAuth(): FirebaseAuth {
-        val mockAuth = mock(FirebaseAuth::class.java)
+        val mockAuth = mock(FirebaseAuth::class.java, Answers.RETURNS_DEEP_STUBS)
         val mockToken = mock(FirebaseToken::class.java)
         val mockUserRecord = mock(UserRecord::class.java)
 
@@ -41,6 +49,7 @@ class MockFirebaseConfig {
         `when`(mockAuth.verifyIdToken(any())).thenReturn(mockToken)
         `when`(mockAuth.getUser(any())).thenReturn(mockUserRecord)
 
+        `when`(mockAuth.tenantManager.getAuthForTenant(any()).getUser(any())).thenReturn(mockUserRecord)
 
         return mockAuth
     }
