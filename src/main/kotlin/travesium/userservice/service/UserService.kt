@@ -13,7 +13,6 @@ import travesium.userservice.dto.UserDto
 import travesium.userservice.exceptions.UserExceptions
 import travesium.userservice.kafka.data.ReportingStreamData
 import travesium.userservice.kafka.data.UserEvent
-import travesium.userservice.kafka.publisher.NotificationPublisher
 import travesium.userservice.mapper.UserMapper
 import java.time.OffsetDateTime
 import java.time.YearMonth
@@ -25,8 +24,7 @@ import java.time.YearMonth
 class UserService(
     private val userRepository: UserRepository,
     private val eventPublisher: ApplicationEventPublisher,
-    private val firebaseService: FirebaseService,
-    private val notificationPublisher: NotificationPublisher?){
+    private val firebaseService: FirebaseService){
 
     @Transactional
     fun createUser(userDto: UserDto): UserDto {
@@ -260,7 +258,7 @@ class UserService(
             commentReferenceId = null
         )
 
-        notificationPublisher?.publish(event)
+        eventPublisher.publishEvent(event)
     }
 
     private fun checkAuthorization(userFireBaseId: String, userEmail: String) {
