@@ -8,6 +8,13 @@ import java.time.OffsetDateTime
  */
 @Entity
 @Table(name = User.TABLE_NAME)
+@NamedEntityGraph(
+    name = "User.withFollowersAndFollowing",
+    attributeNodes = [
+        NamedAttributeNode("following"),
+        NamedAttributeNode("followers")
+    ]
+)
 data class User(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

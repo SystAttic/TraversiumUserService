@@ -18,6 +18,7 @@ import travesium.userservice.db.model.User
 import travesium.userservice.db.repository.UserRepository
 import travesium.userservice.exceptions.UserExceptions
 import travesium.userservice.security.MockFirebaseConfig
+import travesium.userservice.security.TestMultitenancyConfig
 import travesium.userservice.service.UserService
 
 /**
@@ -29,7 +30,7 @@ import travesium.userservice.service.UserService
 @ExtendWith(SpringExtension::class)
 @Transactional
 @DirtiesContext
-@ContextConfiguration(classes = [MockFirebaseConfig::class])
+@ContextConfiguration(classes = [MockFirebaseConfig::class, TestMultitenancyConfig::class])
 class UserFollowingAndBlockedTests@Autowired constructor(
     private val userRepository: UserRepository,
     @Autowired private val userService: UserService,

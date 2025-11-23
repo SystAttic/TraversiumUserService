@@ -2,6 +2,7 @@ package travesium.userservice
 
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.SpringBootTest
@@ -9,12 +10,16 @@ import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.graphql.test.tester.GraphQlTester
 import org.springframework.graphql.test.tester.HttpGraphQlTester
 import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
+import org.springframework.test.context.junit.jupiter.SpringExtension
 import org.springframework.test.web.reactive.server.WebTestClient
+import org.springframework.transaction.annotation.Transactional
 import travesium.userservice.dto.UserDto
 import travesium.userservice.security.BaseSecuritySetup
 import travesium.userservice.security.MockFirebaseConfig
+import travesium.userservice.security.TestMultitenancyConfig
 import travesium.userservice.service.UserService
 import kotlin.test.Test
 
@@ -23,13 +28,22 @@ import kotlin.test.Test
  */
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 @ActiveProfiles("test")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+    classes = [UserServiceApplication::class]
+)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@ContextConfiguration(classes = [MockFirebaseConfig::class])
+@ExtendWith(SpringExtension::class)
+@Transactional
+@DirtiesContext
+@ContextConfiguration(classes = [MockFirebaseConfig::class, TestMultitenancyConfig::class])
 class UserQueryControllerTest() : BaseSecuritySetup() {
 
     @Autowired
     private lateinit var userService: UserService
+
+    @Autowired
+    private lateinit var mockFirebaseConfig: MockFirebaseConfig
 
     @LocalServerPort
     private var port: Int = 0
@@ -40,6 +54,8 @@ class UserQueryControllerTest() : BaseSecuritySetup() {
     fun setup() {
         SecurityContextHolder.clearContext()
         setupDefaultAuth()
+
+        mockFirebaseConfig.setTokenData(token, firebaseId, email)
 
         val client = WebTestClient.bindToServer()
             .defaultHeader("Authorization", "Bearer $token")
