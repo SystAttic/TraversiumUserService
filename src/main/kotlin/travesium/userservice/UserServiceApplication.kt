@@ -3,10 +3,12 @@ package travesium.userservice
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.context.annotation.Import
+import org.springframework.scheduling.annotation.EnableScheduling
 import traversium.commonmultitenancy.FlywayTenantMigration
 import traversium.commonmultitenancy.MultiTenantAutoConfiguration
 
 @SpringBootApplication
+@EnableScheduling
 @Import(MultiTenantAutoConfiguration::class, FlywayTenantMigration::class)
 class UserServiceApplication
 

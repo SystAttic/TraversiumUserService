@@ -1,13 +1,17 @@
 package travesium.userservice.service
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.logging.log4j.kotlin.logger
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageRequest
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import traversium.commonmultitenancy.TenantContext
 import traversium.notification.kafka.NotificationStreamData
+import travesium.userservice.db.model.Outbox
 import travesium.userservice.db.model.User
+import travesium.userservice.db.repository.OutboxRepository
 import travesium.userservice.db.repository.UserRepository
 import travesium.userservice.dto.UserDto
 import travesium.userservice.exceptions.UserExceptions
@@ -24,7 +28,9 @@ import java.time.YearMonth
 class UserService(
     private val userRepository: UserRepository,
     private val eventPublisher: ApplicationEventPublisher,
-    private val firebaseService: FirebaseService){
+    private val firebaseService: FirebaseService,
+    private val outboxRepository: OutboxRepository,
+    private val objectMapper: ObjectMapper){
 
     @Transactional
     fun createUser(userDto: UserDto): UserDto {
@@ -73,6 +79,7 @@ class UserService(
         userRepository.save(deletedUser)
 
         publishUserEvent(UserEvent.USER_DELETED)
+        logger.info("User deleted: $deletedUser")
     }
 
     @Transactional
@@ -132,6 +139,8 @@ class UserService(
 
             publishFollowNotification(follower.username!!, followed.username!!)
         }
+
+        logger.info("${follower.username} successfully follows $followedUsername")
     }
 
     @Transactional
@@ -147,7 +156,7 @@ class UserService(
 
         if (userRepository.checkIfUserAIsFollowingUserB(follower.userId!!, followed.userId!!)) {
             userRepository.removeFollowerByUserId(follower.userId, followed.userId)
-            logger.info { "User $followedUsername has been unfollowed" }
+            logger.info("${follower.username} successfully unfollows $followedUsername")
         }
     }
 
@@ -200,6 +209,8 @@ class UserService(
 
         userRepository.removeFollowerByUserId(blocker.userId!!, blocked.userId!!)
         userRepository.removeFollowerByUserId(blocked.userId, blocker.userId)
+
+        logger.info("${blocker.username} successfully blocked $blockedUsername")
     }
 
     @Transactional
@@ -212,6 +223,8 @@ class UserService(
         if (blocked in blocker.blocked) {
             blocker.blocked.remove(blocked)
         }
+
+        logger.info("${blocker.username} successfully unblocked $blockedUsername")
     }
 
     fun getBlockedUsers(offset: Int, limit: Int): List<UserDto> {
@@ -258,7 +271,13 @@ class UserService(
             commentReferenceId = null
         )
 
-        eventPublisher.publishEvent(event)
+        val outboxEvent = Outbox(
+            eventType = "NOTIFICATION",
+            payload = objectMapper.writeValueAsString(event),
+            tenantId = TenantContext.getTenant()
+        )
+
+        outboxRepository.save(outboxEvent)
     }
 
     private fun checkAuthorization(userFireBaseId: String, userEmail: String) {

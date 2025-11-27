@@ -114,7 +114,6 @@ class UserController(private val userService: UserService) : Logging {
     )
     fun deleteUserByUsername(): ResponseEntity<Unit> {
         userService.deleteUser()
-        logger.info("User deleted.")
         return ResponseEntity.ok().build()
     }
 
@@ -176,7 +175,6 @@ class UserController(private val userService: UserService) : Logging {
         @RequestParam(defaultValue = "20") limit: Int
         ): ResponseEntity<List<UserDto>> {
         val users = userService.getUsersByUsernames(usernames, offset, limit)
-        logger.info("Retrieved list of users for provided usernames.")
         return ResponseEntity.ok(users)
     }
 
@@ -209,7 +207,6 @@ class UserController(private val userService: UserService) : Logging {
         @PathVariable toFollowUsername: String
     ): ResponseEntity<Unit> {
         userService.followUser(toFollowUsername)
-        logger.info("Followed user $toFollowUsername.")
         return ResponseEntity.ok().build()
     }
 
@@ -242,7 +239,6 @@ class UserController(private val userService: UserService) : Logging {
         @PathVariable toUnfollowUsername: String
     ): ResponseEntity<Unit> {
         userService.unfollowUser(toUnfollowUsername)
-        logger.info("Unfollowed user $toUnfollowUsername.")
         return ResponseEntity.ok().build()
     }
 
@@ -417,7 +413,6 @@ class UserController(private val userService: UserService) : Logging {
         @PathVariable blocked: String
     ): ResponseEntity<Unit> {
         userService.unblockUser(blocked)
-        logger.info("User $blocked unblocked successfully.")
         return ResponseEntity.ok().build()
     }
 
