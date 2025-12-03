@@ -11,6 +11,7 @@ class KafkaProperties @ConstructorBinding constructor(
     val bootstrapServers: String,
     val reportingTopic: String?,
     val notificationTopic: String?,
+    val auditTopic: String?,
     partition: Int? = null,
     partitioningStrategy: PartitioningStrategy = PartitioningStrategy.PER_MESSAGE_KEY,
     val clientConfirmationTimeout: Long = 10L

@@ -80,7 +80,8 @@ class FirebaseAuthenticationFilter(
         val prefixPaths = listOf(
             "/swagger-ui",
             "/v3/api-docs",
-            "/swagger-resources"
+            "/swagger-resources",
+            "/actuator/health"
         )
 
         return path in exactPaths || prefixPaths.any { path.startsWith(it) }
