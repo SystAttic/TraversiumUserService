@@ -6,6 +6,11 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import traversium.audit.kafka.ActivityType
+import traversium.audit.kafka.AuditStreamData
+import traversium.audit.kafka.EntityType
+import traversium.audit.kafka.UserActivityAction
+import traversium.notification.kafka.ActionType
 import traversium.notification.kafka.NotificationStreamData
 import travesium.userservice.db.model.User
 import travesium.userservice.db.repository.UserRepository
@@ -41,6 +46,7 @@ class UserService(
         return UserMapper.toEntity(userDto).let { user ->
             val savedUser = userRepository.save(user)
             publishUserEvent(UserEvent.USER_CREATED)
+            publishAuditEvent(savedUser.firebaseId!!, UserActivityAction.USER_CREATED.name, savedUser.userId!!)
             UserMapper.toDto(savedUser)
         }
     }
@@ -72,7 +78,7 @@ class UserService(
         val deletedUser = user.copy(deleted = true)
         userRepository.save(deletedUser)
 
-        publishUserEvent(UserEvent.USER_DELETED)
+        publishAuditEvent(user.firebaseId!!, UserActivityAction.USER_DELETED.name, user.userId!!)
     }
 
     @Transactional
@@ -96,6 +102,12 @@ class UserService(
         )
 
         userRepository.save(updatedUser)
+
+        val changedFields = getChangedFields(existingUser, userDto)
+        changedFields.forEach { action ->
+            publishAuditEvent(existingUser.firebaseId, action, existingUser.userId!!)
+        }
+
         return UserMapper.toDto(updatedUser)
     }
 
@@ -129,8 +141,8 @@ class UserService(
 
         if (!userRepository.checkIfUserAIsFollowingUserB(follower.userId!!, followed.userId!!)) {
             follower.following.add(followed)
-
             publishFollowNotification(follower.username!!, followed.username!!)
+            publishAuditEvent(follower.firebaseId!!, UserActivityAction.USER_FOLLOWED.name, follower.userId, "followedUserId" to followed.firebaseId!!)
         }
     }
 
@@ -147,6 +159,7 @@ class UserService(
 
         if (userRepository.checkIfUserAIsFollowingUserB(follower.userId!!, followed.userId!!)) {
             userRepository.removeFollowerByUserId(follower.userId, followed.userId)
+            publishAuditEvent(follower.firebaseId!!, UserActivityAction.USER_UNFOLLOWED.name, follower.userId, "unfollowedUserId" to followed.firebaseId!!)
             logger.info { "User $followedUsername has been unfollowed" }
         }
     }
@@ -196,10 +209,11 @@ class UserService(
 
         if (blocked !in blocker.blocked) {
             blocker.blocked.add(blocked)
-        }
+            userRepository.removeFollowerByUserId(blocker.userId!!, blocked.userId!!)
+            userRepository.removeFollowerByUserId(blocked.userId, blocker.userId)
 
-        userRepository.removeFollowerByUserId(blocker.userId!!, blocked.userId!!)
-        userRepository.removeFollowerByUserId(blocked.userId, blocker.userId)
+            publishAuditEvent(blocker.firebaseId!!, UserActivityAction.USER_BLOCKED.name, blocker.userId, "blockedUserId" to blocked.firebaseId!!)
+        }
     }
 
     @Transactional
@@ -211,6 +225,7 @@ class UserService(
 
         if (blocked in blocker.blocked) {
             blocker.blocked.remove(blocked)
+            publishAuditEvent(blocker.firebaseId!!, UserActivityAction.USER_UNBLOCKED.name, blocker.userId!!, "unblockedUserId" to blocked.firebaseId!!)
         }
     }
 
@@ -251,14 +266,66 @@ class UserService(
         val event = NotificationStreamData(
             senderId = followerUsername,
             receiverIds = listOf(followedUsername),
-            action = "FOLLOW",
+            action = ActionType.FOLLOW,
             timestamp = OffsetDateTime.now(),
             collectionReferenceId = null,
             nodeReferenceId = null,
-            commentReferenceId = null
+            commentReferenceId = null,
+            mediaReferenceId = null
         )
 
         eventPublisher.publishEvent(event)
+    }
+
+    private fun getChangedFields(existingUser: User, userDto: UserDto): List<String> {
+        val changedFields = mutableListOf<String>()
+
+        if (userDto.displayName != null && userDto.displayName != existingUser.displayName) {
+            changedFields.add(UserActivityAction.USER_DISPLAY_NAME_CHANGED.name)
+        }
+        if (userDto.description != null && userDto.description != existingUser.description) {
+            changedFields.add(UserActivityAction.USER_DESCRIPTION_CHANGED.name)
+        }
+        if (userDto.avatarPhotoReference != null && userDto.avatarPhotoReference != existingUser.avatarPhotoReference) {
+            changedFields.add(UserActivityAction.USER_AVATAR_PHOTO_CHANGED.name)
+        }
+        if (userDto.coverPhotoReference != null && userDto.coverPhotoReference != existingUser.coverPhotoReference) {
+            changedFields.add(UserActivityAction.USER_COVER_PHOTO_CHANGED.name)
+        }
+        if (userDto.firstName != null && userDto.firstName != existingUser.firstName) {
+            changedFields.add(UserActivityAction.USER_FIRST_NAME_CHANGED.name)
+        }
+        if (userDto.lastName != null && userDto.lastName != existingUser.lastName) {
+            changedFields.add(UserActivityAction.USER_LAST_NAME_CHANGED.name)
+        }
+        if (userDto.countryOfOrigin != null && userDto.countryOfOrigin != existingUser.countryOfOrigin) {
+            changedFields.add(UserActivityAction.USER_COUNTRY_OF_ORIGIN_CHANGED.name)
+        }
+        if (userDto.gender != null && userDto.gender != existingUser.gender) {
+            changedFields.add(UserActivityAction.USER_GENDER_CHANGED.name)
+        }
+
+        return changedFields
+    }
+
+    private fun publishAuditEvent(firebaseId: String, action: String, userId: Long, vararg metadata: Pair<String, String>) {
+        val auditEvent = AuditStreamData(
+            timestamp = OffsetDateTime.now(),
+            userId = firebaseId,
+            activityType = ActivityType.USER_ACTIVITY,
+            action = action,
+            entityType = EntityType.USER,
+            entityId = userId,
+            tripId = null,
+            metadata = mapOf(
+                *metadata,
+                "userId" to userId,
+                "entityType" to "USER",
+                "action" to action
+            )
+        )
+
+        eventPublisher.publishEvent(auditEvent)
     }
 
     private fun checkAuthorization(userFireBaseId: String, userEmail: String) {
