@@ -17,7 +17,6 @@ import travesium.userservice.db.model.User
 import travesium.userservice.db.repository.UserRepository
 import travesium.userservice.dto.UserDto
 import travesium.userservice.exceptions.UserExceptions
-import travesium.userservice.mapper.UserMapper
 import travesium.userservice.security.BaseSecuritySetup
 import travesium.userservice.service.FirebaseService
 import travesium.userservice.service.UserService
@@ -52,7 +51,10 @@ class UserServiceTest : BaseSecuritySetup() {
 
         `when`(userRepository.findByUsername(userDto.username!!)).thenReturn(Optional.empty())
         `when`(userRepository.findByEmail(userDto.email!!)).thenReturn(Optional.empty())
-        `when`(userRepository.save(UserMapper.toEntity(userDto))).thenAnswer { it.arguments[0] }
+        `when`(userRepository.save(any<User>())).thenAnswer {
+            val user = it.arguments[0] as User
+            user.copy(userId = 1L)
+        }
 
         val result = userService.createUser(userDto)
 
@@ -60,7 +62,6 @@ class UserServiceTest : BaseSecuritySetup() {
         assertEquals(userDto.email, result.email)
         assertEquals(firebaseId, result.firebaseId)
 
-        verify(userRepository).save(UserMapper.toEntity(userDto))
         verify(userRepository).save(any())
     }
 
@@ -129,7 +130,7 @@ class UserServiceTest : BaseSecuritySetup() {
 
     @Test
     fun `deleteUser success`() {
-        val user = User(username = "test", email = "test@example.com", firebaseId = firebaseId)
+        val user = User(userId = 1L, username = "test", email = "test@example.com", firebaseId = firebaseId)
 
         `when`(userRepository.findByFirebaseId(firebaseId)).thenReturn(Optional.of(user))
 

@@ -27,6 +27,9 @@ import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.TestPropertySource
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
+import traversium.audit.kafka.AuditStreamData
+import traversium.audit.kafka.UserActivityAction
+import traversium.notification.kafka.ActionType
 import traversium.notification.kafka.NotificationStreamData
 import travesium.userservice.db.model.User
 import travesium.userservice.db.repository.UserRepository
@@ -46,12 +49,13 @@ import kotlin.test.Test
  */
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 @SpringBootTest
-@EmbeddedKafka(partitions = 1, topics = ["test-datastream", "test-notifications"], bootstrapServersProperty = "spring.kafka.bootstrap-servers")
+@EmbeddedKafka(partitions = 1, topics = ["test-datastream", "test-notifications", "test-audit"], bootstrapServersProperty = "spring.kafka.bootstrap-servers")
 @TestPropertySource(
     properties = [
         "spring.kafka.consumer.auto-offset-reset=earliest",
         "spring.kafka.reporting-topic=test-datastream",
         "spring.kafka.notification-topic=test-notifications",
+        "spring.kafka.audit-topic=test-audit",
         "spring.kafka.consumer.group-id=user-service-tests",
     ]
 )
@@ -66,6 +70,9 @@ class KafkaTests() : BaseSecuritySetup() {
     lateinit var reportingKafkaConsumer: ReportingKafkaConsumer
 
     @Autowired
+    lateinit var auditingKafkaConsumer: AuditingKafkaConsumer
+
+    @Autowired
     lateinit var notificationKafkaConsumer: NotificationKafkaConsumer
 
     @Autowired
@@ -77,6 +84,7 @@ class KafkaTests() : BaseSecuritySetup() {
     @BeforeEach
     fun beforeEach() {
         reportingKafkaConsumer.clearMessages()
+        auditingKafkaConsumer.clearMessages()
         notificationKafkaConsumer.clearMessages()
         userRepository.deleteAll()
 
@@ -111,14 +119,14 @@ class KafkaTests() : BaseSecuritySetup() {
     fun deleteUserByUsername() {
         val userDto = UserDto(username = "test", email = email, firebaseId = firebaseId)
         userService.createUser(userDto)
-        waitForSize(1) { reportingKafkaConsumer.getMessages().size }
-        reportingKafkaConsumer.clearMessages()
+        waitForSize(1) { auditingKafkaConsumer.getMessages().size }
+        auditingKafkaConsumer.clearMessages()
         userService.deleteUser()
-        waitForSize(1) { reportingKafkaConsumer.getMessages().size }
-        val messages = reportingKafkaConsumer.getMessages()
+        waitForSize(1) { auditingKafkaConsumer.getMessages().size }
+        val messages = auditingKafkaConsumer.getMessages()
         assert(messages.size == 1)
-        val receivedData = messages[0] as ReportingStreamData
-        assert(receivedData.action == UserEvent.USER_DELETED)
+        val receivedData = messages[0] as AuditStreamData
+        assert(receivedData.action == UserActivityAction.USER_DELETED.name)
     }
 
     @Test
@@ -140,7 +148,7 @@ class KafkaTests() : BaseSecuritySetup() {
         val notification = messages[0] as NotificationStreamData
         assert(notification.senderId == "alice")
         assert(notification.receiverIds.contains("bob"))
-        assert(notification.action == "FOLLOW")
+        assert(notification.action == ActionType.FOLLOW)
     }
 
     @Test
@@ -165,6 +173,18 @@ class KafkaTests() : BaseSecuritySetup() {
         fun clearMessages() = messages.clear()
 
         override fun onMessage(data: ConsumerRecord<String, ReportingStreamData>) {
+            messages.add(data.value())
+        }
+    }
+
+    class AuditingKafkaConsumer : MessageListener<String, AuditStreamData> {
+        private val messages = LinkedBlockingQueue<Any>()
+
+        fun getMessages(): List<Any> = messages.toList()
+
+        fun clearMessages() = messages.clear()
+
+        override fun onMessage(data: ConsumerRecord<String, AuditStreamData>) {
             messages.add(data.value())
         }
     }
@@ -205,6 +225,9 @@ class KafkaTests() : BaseSecuritySetup() {
         fun notificationKafkaConsumer() = NotificationKafkaConsumer()
 
         @Bean
+        fun auditingKafkaConsumer() = AuditingKafkaConsumer()
+
+        @Bean
         fun reportingKafkaListenerContainer(
             objectMapper: ObjectMapper,
             reportingKafkaConsumer: ReportingKafkaConsumer,
@@ -214,6 +237,20 @@ class KafkaTests() : BaseSecuritySetup() {
             KafkaMessageListenerContainer(
                 reportingConsumerFactory(objectMapper, bootstrapServers, groupId),
                 kafkaContainerProperties(topic, emptySet(), reportingKafkaConsumer))
+                .apply {
+                    commonErrorHandler = DefaultErrorHandler()
+                }
+
+        @Bean
+        fun auditingKafkaListenerContainer(
+            objectMapper: ObjectMapper,
+            auditingKafkaConsumer: AuditingKafkaConsumer,
+            @Value("\${spring.kafka.bootstrap-servers}") bootstrapServers: String,
+            @Value("\${spring.kafka.audit-topic}") topic: String,
+            @Value("\${spring.kafka.consumer.group-id}") groupId: String) =
+            KafkaMessageListenerContainer(
+                auditingConsumerFactory(objectMapper, bootstrapServers, groupId),
+                kafkaContainerProperties(topic, emptySet(), auditingKafkaConsumer))
                 .apply {
                     commonErrorHandler = DefaultErrorHandler()
                 }
@@ -250,6 +287,17 @@ class KafkaTests() : BaseSecuritySetup() {
                 kafkaConsumerConfig(bootstrapServers, groupId, 1048576, 1048576, ReportingStreamData::class.java),
                 StringDeserializer(),
                 JsonDeserializer(ReportingStreamData::class.java, objectMapper)
+            )
+
+        fun auditingConsumerFactory(
+            objectMapper: ObjectMapper,
+            bootstrapServers: String,
+            groupId: String
+        ): DefaultKafkaConsumerFactory<String, AuditStreamData> =
+            DefaultKafkaConsumerFactory(
+                kafkaConsumerConfig(bootstrapServers, groupId, 1048576, 1048576, ReportingStreamData::class.java),
+                StringDeserializer(),
+                JsonDeserializer(AuditStreamData ::class.java, objectMapper)
             )
 
         fun notificationConsumerFactory(
