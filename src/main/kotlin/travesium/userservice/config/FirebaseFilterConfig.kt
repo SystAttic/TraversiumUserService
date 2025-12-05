@@ -37,6 +37,8 @@ class FirebaseFilterConfig {
                     ).permitAll()
                     .requestMatchers("/actuator/health/**").permitAll()
                     .requestMatchers("/actuator/health").permitAll()
+                    .requestMatchers("/actuator/prometheus/**").permitAll()
+                    .requestMatchers("/actuator/prometheus").permitAll()
                     .anyRequest().permitAll()
             }
             .addFilterBefore(firebaseAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)

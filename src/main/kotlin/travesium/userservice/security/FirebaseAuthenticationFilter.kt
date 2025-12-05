@@ -81,7 +81,8 @@ class FirebaseAuthenticationFilter(
             "/swagger-ui",
             "/v3/api-docs",
             "/swagger-resources",
-            "/actuator/health"
+            "/actuator/health",
+            "/actuator/prometheus"
         )
 
         return path in exactPaths || prefixPaths.any { path.startsWith(it) }
