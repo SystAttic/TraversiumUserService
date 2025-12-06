@@ -1,6 +1,8 @@
 package travesium.userservice.service
 
+import io.grpc.Metadata
 import io.grpc.StatusRuntimeException
+import io.grpc.stub.MetadataUtils
 import org.apache.logging.log4j.kotlin.logger
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageRequest
@@ -211,7 +213,7 @@ class UserService(
         val blocker = getUserFromContext()
         if (blocker.userId == blocked.userId)
             throw UserExceptions.InvalidUserDataException("Cannot block self.")
-        val success = removeUserRelations(blocker.username!!, blockedUsername)
+        val success = removeUserRelations(blocker.firebaseId!!, blocked.firebaseId!!)
         if (!success) {
             throw UserExceptions.RemoteServiceException("TripService")
         }
@@ -359,7 +361,18 @@ class UserService(
             .build()
 
         return try {
-            val response = removeBlockedStub.removeBlockedUserRelations(request)
+            val firebaseToken = SecurityContextHolder.getContext().authentication.credentials as String
+
+            val metadata = Metadata()
+            metadata.put(
+                Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER),
+                "Bearer $firebaseToken"
+            )
+
+            val response = removeBlockedStub
+                .withInterceptors(MetadataUtils.newAttachHeadersInterceptor(metadata))
+                .removeBlockedUserRelations(request)
+
             response.message == "SUCCESS"
         } catch (e: StatusRuntimeException) {
             logger.error("gRPC call to TripService failed: ${e.status.code} - ${e.message}")
