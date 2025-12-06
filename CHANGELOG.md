@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.0] - Unreleased
 ### Added
 - Prometheus metrics endpoint
+- Add gRPC support for user service
 
 ## [1.1.0] - 2025-12-03
 ### Added
