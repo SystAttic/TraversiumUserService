@@ -2,7 +2,6 @@ package travesium.userservice.service
 
 import io.grpc.StatusRuntimeException
 import org.apache.logging.log4j.kotlin.logger
-import org.apache.logging.log4j.kotlin.logger
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageRequest
 import org.springframework.security.core.context.SecurityContextHolder
@@ -15,8 +14,6 @@ import traversium.audit.kafka.UserActivityAction
 import traversium.notification.kafka.ActionType
 import traversium.notification.kafka.NotificationStreamData
 import travesium.userservice.db.model.User
-import traversium.tripservice.removeblocked.RemoveBlockedServiceGrpc
-import traversium.tripservice.removeblocked.RemoveRequest
 import travesium.userservice.db.repository.UserRepository
 import travesium.userservice.dto.UserDto
 import travesium.userservice.exceptions.UserExceptions
