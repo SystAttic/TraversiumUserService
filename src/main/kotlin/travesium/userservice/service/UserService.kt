@@ -13,6 +13,8 @@ import traversium.audit.kafka.EntityType
 import traversium.audit.kafka.UserActivityAction
 import traversium.notification.kafka.ActionType
 import traversium.notification.kafka.NotificationStreamData
+import traversium.tripservice.removeblocked.RemoveBlockedServiceGrpc
+import traversium.tripservice.removeblocked.RemoveRequest
 import travesium.userservice.db.model.User
 import travesium.userservice.db.repository.UserRepository
 import travesium.userservice.dto.UserDto
@@ -30,9 +32,9 @@ import java.time.YearMonth
 class UserService(
     private val userRepository: UserRepository,
     private val eventPublisher: ApplicationEventPublisher,
-    private val removeBlockedStub: RemoveBlockedServiceGrpc.RemoveBlockedServiceBlockingStub) {
-    private val eventPublisher: ApplicationEventPublisher,
-    private val firebaseService: FirebaseService){
+    private val removeBlockedStub: RemoveBlockedServiceGrpc.RemoveBlockedServiceBlockingStub,
+    private val firebaseService: FirebaseService)
+{
 
     @Transactional
     fun createUser(userDto: UserDto): UserDto {
@@ -209,7 +211,7 @@ class UserService(
         val blocker = getUserFromContext()
         if (blocker.userId == blocked.userId)
             throw UserExceptions.InvalidUserDataException("Cannot block self.")
-        val success = removeUserRelations(blockerUsername, blockedUsername)
+        val success = removeUserRelations(blocker.username!!, blockedUsername)
         if (!success) {
             throw UserExceptions.RemoteServiceException("TripService")
         }
