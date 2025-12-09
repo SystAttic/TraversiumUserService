@@ -16,7 +16,6 @@ class GrpcClientConfig(
     private val grpcProperties: GrpcProperties,
 ) {
 
-    // TODO SECURITY????
     @Bean
     fun grpcClient(): ManagedChannel {
         return ManagedChannelBuilder.forAddress(grpcProperties.host, grpcProperties.port).usePlaintext().build()

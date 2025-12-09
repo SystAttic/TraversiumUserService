@@ -1,8 +1,5 @@
 package travesium.userservice.service
 
-import io.grpc.Metadata
-import io.grpc.StatusRuntimeException
-import io.grpc.stub.MetadataUtils
 import org.apache.logging.log4j.kotlin.logger
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageRequest
@@ -15,8 +12,6 @@ import traversium.audit.kafka.EntityType
 import traversium.audit.kafka.UserActivityAction
 import traversium.notification.kafka.ActionType
 import traversium.notification.kafka.NotificationStreamData
-import traversium.tripservice.removeblocked.RemoveBlockedServiceGrpc
-import traversium.tripservice.removeblocked.RemoveRequest
 import travesium.userservice.db.model.User
 import travesium.userservice.db.repository.UserRepository
 import travesium.userservice.dto.UserDto
@@ -34,7 +29,7 @@ import java.time.YearMonth
 class UserService(
     private val userRepository: UserRepository,
     private val eventPublisher: ApplicationEventPublisher,
-    private val removeBlockedStub: RemoveBlockedServiceGrpc.RemoveBlockedServiceBlockingStub,
+    private val tripServiceGrpcClient: TripServiceGrpcClient,
     private val firebaseService: FirebaseService)
 {
 
@@ -211,14 +206,22 @@ class UserService(
             .orElseThrow { UserExceptions.UserNotFoundException() }
 
         val blocker = getUserFromContext()
+
+        if (blocked in blocker.blocked) {
+            return
+        }
+
         if (blocker.userId == blocked.userId)
             throw UserExceptions.InvalidUserDataException("Cannot block self.")
-        val success = removeUserRelations(blocker.firebaseId!!, blocked.firebaseId!!)
-        if (!success) {
+
+        val success = try {
+            tripServiceGrpcClient.removeUserRelations(blocker.firebaseId!!, blocked.firebaseId!!)
+        } catch (e: Exception) {
+            logger.error("Failed to remove user relations in TripService after retries: ${e.message}")
             throw UserExceptions.RemoteServiceException("TripService")
         }
 
-        if (blocked !in blocker.blocked) {
+        if (blocked !in blocker.blocked && success) {
             blocker.blocked.add(blocked)
             userRepository.removeFollowerByUserId(blocker.userId!!, blocked.userId!!)
             userRepository.removeFollowerByUserId(blocked.userId, blocker.userId)
@@ -352,32 +355,6 @@ class UserService(
         val firebaseId = firebaseService.extractUidFromToken(SecurityContextHolder.getContext().authentication.credentials as String)
         return userRepository.findByFirebaseId(firebaseId)
             .orElseThrow { UserExceptions.UserNotFoundException() }
-    }
-
-    fun removeUserRelations(blockerId: String, blockedId: String): Boolean {
-        val request = RemoveRequest.newBuilder()
-            .setBlockerId(blockerId)
-            .setBlockedId(blockedId)
-            .build()
-
-        return try {
-            val firebaseToken = SecurityContextHolder.getContext().authentication.credentials as String
-
-            val metadata = Metadata()
-            metadata.put(
-                Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER),
-                "Bearer $firebaseToken"
-            )
-
-            val response = removeBlockedStub
-                .withInterceptors(MetadataUtils.newAttachHeadersInterceptor(metadata))
-                .removeBlockedUserRelations(request)
-
-            response.message == "SUCCESS"
-        } catch (e: StatusRuntimeException) {
-            logger.error("gRPC call to TripService failed: ${e.status.code} - ${e.message}")
-            false
-        }
     }
 
 }

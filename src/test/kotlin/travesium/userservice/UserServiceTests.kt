@@ -20,6 +20,7 @@ import travesium.userservice.dto.UserDto
 import travesium.userservice.exceptions.UserExceptions
 import travesium.userservice.security.BaseSecuritySetup
 import travesium.userservice.service.FirebaseService
+import travesium.userservice.service.TripServiceGrpcClient
 import travesium.userservice.service.UserService
 import java.util.*
 
@@ -37,6 +38,9 @@ class UserServiceTest : BaseSecuritySetup() {
 
     @Mock
     private lateinit var firebaseService: FirebaseService
+
+    @Mock
+    private lateinit var tripServiceGrpcClient: TripServiceGrpcClient
 
     @Mock
     private lateinit var removeBlockedStub: RemoveBlockedServiceGrpc.RemoveBlockedServiceBlockingStub
