@@ -38,6 +38,7 @@ import travesium.userservice.kafka.data.ReportingStreamData
 import travesium.userservice.kafka.data.UserEvent
 import travesium.userservice.security.BaseSecuritySetup
 import travesium.userservice.security.MockFirebaseConfig
+import travesium.userservice.security.MockGrpcConfig
 import travesium.userservice.security.TestMultitenancyConfig
 import travesium.userservice.service.UserService
 import java.util.concurrent.LinkedBlockingQueue
@@ -59,7 +60,7 @@ import kotlin.test.Test
         "spring.kafka.consumer.group-id=user-service-tests",
     ]
 )
-@ContextConfiguration(classes = [KafkaTests.KafkaConsumerConfiguration::class, MockFirebaseConfig::class, TestMultitenancyConfig::class])
+@ContextConfiguration(classes = [KafkaTests.KafkaConsumerConfiguration::class, MockFirebaseConfig::class, TestMultitenancyConfig::class, MockGrpcConfig::class])
 @ActiveProfiles("test")
 class KafkaTests() : BaseSecuritySetup() {
 
@@ -163,6 +164,164 @@ class KafkaTests() : BaseSecuritySetup() {
         userService.followUser("bob")
 
         waitForSize(0) { notificationKafkaConsumer.getMessages().size }
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    fun createUserSendsAuditEvent() {
+        val userDto = UserDto(username = "test", email = email, firebaseId = firebaseId)
+        userService.createUser(userDto)
+
+        waitForSize(1) { auditingKafkaConsumer.getMessages().size }
+        val messages = auditingKafkaConsumer.getMessages()
+        assert(messages.size == 1)
+        val receivedData = messages[0] as AuditStreamData
+        assert(receivedData.action == UserActivityAction.USER_CREATED.name)
+        assert(receivedData.userId == firebaseId)
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    fun followUserSendsAuditEvent() {
+        userRepository.save(User(username = "alice", email = "user1@example.com", firebaseId = "user1UID"))
+        userRepository.save(User(username = "bob", email = "user2@example.com", firebaseId = "user2UID"))
+
+        val auth = UsernamePasswordAuthenticationToken("principal", "token1")
+        SecurityContextHolder.getContext().authentication = auth
+
+        userService.followUser("bob")
+
+        waitForSize(1) { auditingKafkaConsumer.getMessages().size }
+
+        val messages = auditingKafkaConsumer.getMessages()
+        assert(messages.size == 1)
+
+        val auditData = messages[0] as AuditStreamData
+        assert(auditData.action == UserActivityAction.USER_FOLLOWED.name)
+        assert(auditData.userId == "user1UID")
+        assert(auditData.metadata?.get("followedUserId") == "user2UID")
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    fun unfollowUserSendsAuditEvent() {
+        val alice = userRepository.save(User(username = "alice", email = "user1@example.com", firebaseId = "user1UID"))
+        val bob = userRepository.save(User(username = "bob", email = "user2@example.com", firebaseId = "user2UID"))
+
+        alice.following.add(bob)
+        userRepository.save(alice)
+
+        val auth = UsernamePasswordAuthenticationToken("principal", "token1")
+        SecurityContextHolder.getContext().authentication = auth
+
+        userService.unfollowUser("bob")
+
+        waitForSize(1) { auditingKafkaConsumer.getMessages().size }
+
+        val messages = auditingKafkaConsumer.getMessages()
+        assert(messages.size == 1)
+
+        val auditData = messages[0] as AuditStreamData
+        assert(auditData.action == UserActivityAction.USER_UNFOLLOWED.name)
+        assert(auditData.userId == "user1UID")
+        assert(auditData.metadata?.get("unfollowedUserId") == "user2UID")
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    fun blockUserSendsAuditEvent() {
+        userRepository.save(User(username = "alice", email = "user1@example.com", firebaseId = "user1UID"))
+        userRepository.save(User(username = "bob", email = "user2@example.com", firebaseId = "user2UID"))
+
+        val auth = UsernamePasswordAuthenticationToken("principal", "token1")
+        SecurityContextHolder.getContext().authentication = auth
+
+        userService.blockUser("bob")
+
+        waitForSize(1) { auditingKafkaConsumer.getMessages().size }
+
+        val messages = auditingKafkaConsumer.getMessages()
+        assert(messages.size == 1)
+
+        val auditData = messages[0] as AuditStreamData
+        assert(auditData.action == UserActivityAction.USER_BLOCKED.name)
+        assert(auditData.userId == "user1UID")
+        assert(auditData.metadata?.get("blockedUserId") == "user2UID")
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    fun unblockUserSendsAuditEvent() {
+        val alice = userRepository.save(User(username = "alice", email = "user1@example.com", firebaseId = "user1UID"))
+        val bob = userRepository.save(User(username = "bob", email = "user2@example.com", firebaseId = "user2UID"))
+
+        alice.blocked.add(bob)
+        userRepository.save(alice)
+
+        val auth = UsernamePasswordAuthenticationToken("principal", "token1")
+        SecurityContextHolder.getContext().authentication = auth
+
+        userService.unblockUser("bob")
+
+        waitForSize(1) { auditingKafkaConsumer.getMessages().size }
+
+        val messages = auditingKafkaConsumer.getMessages()
+        assert(messages.size == 1)
+
+        val auditData = messages[0] as AuditStreamData
+        assert(auditData.action == UserActivityAction.USER_UNBLOCKED.name)
+        assert(auditData.userId == "user1UID")
+        assert(auditData.metadata?.get("unblockedUserId") == "user2UID")
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    fun updateUserDisplayNameSendsAuditEvent() {
+        val userDto = UserDto(username = "alice", email = email, firebaseId = firebaseId)
+        val createdUser = userService.createUser(userDto)
+
+        waitForSize(1) { auditingKafkaConsumer.getMessages().size }
+        auditingKafkaConsumer.clearMessages()
+
+        val updateDto = UserDto(userId = createdUser.userId, displayName = "Alice Updated")
+        userService.updateUser(updateDto)
+
+        waitForSize(1) { auditingKafkaConsumer.getMessages().size }
+
+        val messages = auditingKafkaConsumer.getMessages()
+        assert(messages.size == 1)
+
+        val auditData = messages[0] as AuditStreamData
+        assert(auditData.action == UserActivityAction.USER_DISPLAY_NAME_CHANGED.name)
+        assert(auditData.userId == firebaseId)
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    fun updateUserMultipleFieldsSendsMultipleAuditEvents() {
+        val userDto = UserDto(username = "alice", email = email, firebaseId = firebaseId)
+        val createdUser = userService.createUser(userDto)
+
+        waitForSize(1) { auditingKafkaConsumer.getMessages().size }
+        auditingKafkaConsumer.clearMessages()
+
+        val updateDto = UserDto(
+            userId = createdUser.userId,
+            displayName = "Alice Updated",
+            description = "New description",
+            firstName = "Alice"
+        )
+        userService.updateUser(updateDto)
+
+        waitForSize(3) { auditingKafkaConsumer.getMessages().size }
+
+        val messages = auditingKafkaConsumer.getMessages()
+        assert(messages.size == 3)
+
+        val actions = messages.map { (it as AuditStreamData).action }
+        assert(actions.contains(UserActivityAction.USER_DISPLAY_NAME_CHANGED.name))
+        assert(actions.contains(UserActivityAction.USER_DESCRIPTION_CHANGED.name))
+        assert(actions.contains(UserActivityAction.USER_FIRST_NAME_CHANGED.name))
     }
 
     class ReportingKafkaConsumer : MessageListener<String, ReportingStreamData> {

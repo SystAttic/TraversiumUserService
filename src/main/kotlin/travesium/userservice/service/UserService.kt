@@ -103,9 +103,9 @@ class UserService(
             gender =  userDto.gender ?: existingUser.gender
         )
 
-        userRepository.save(updatedUser)
+        val changedFields = getChangedFields(UserMapper.toDto(existingUser), UserMapper.toDto(updatedUser))
 
-        val changedFields = getChangedFields(existingUser, userDto)
+        userRepository.save(updatedUser)
         changedFields.forEach { action ->
             publishAuditEvent(existingUser.firebaseId, action, existingUser.userId!!)
         }
@@ -303,7 +303,7 @@ class UserService(
         eventPublisher.publishEvent(event)
     }
 
-    private fun getChangedFields(existingUser: User, userDto: UserDto): List<String> {
+    private fun getChangedFields(existingUser: UserDto, userDto: UserDto): List<String> {
         val changedFields = mutableListOf<String>()
 
         if (userDto.displayName != null && userDto.displayName != existingUser.displayName) {
