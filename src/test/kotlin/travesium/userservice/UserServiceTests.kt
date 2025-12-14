@@ -1,68 +1,71 @@
 package travesium.userservice
 
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.InjectMocks
-import org.mockito.Mock
-import org.mockito.Mockito.*
-import org.mockito.junit.jupiter.MockitoExtension
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
+import org.mockito.Mockito.mock
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.ApplicationEventPublisher
-import traversium.tripservice.removeblocked.RemoveBlockedServiceGrpc
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Import
+import org.springframework.context.annotation.Primary
+import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.test.context.ActiveProfiles
+import org.springframework.transaction.annotation.Transactional
 import travesium.userservice.db.model.User
 import travesium.userservice.db.repository.UserRepository
 import travesium.userservice.dto.UserDto
 import travesium.userservice.exceptions.UserExceptions
 import travesium.userservice.security.BaseSecuritySetup
-import travesium.userservice.service.FirebaseService
-import travesium.userservice.service.TripServiceGrpcClient
+import travesium.userservice.security.MockFirebaseConfig
 import travesium.userservice.service.UserService
-import java.util.*
 
 /**
+ * User Service Tests with H2 Database (no repository mocking)
  * @author Maja Razinger
  */
-@ExtendWith(MockitoExtension::class)
-class UserServiceTest : BaseSecuritySetup() {
+@SpringBootTest
+@ActiveProfiles("test")
+@Transactional
+@Import(MockFirebaseConfig::class)
+class UserServiceTests : BaseSecuritySetup() {
 
-    @Mock
+    @TestConfiguration
+    class TestConfig {
+        @Bean
+        @Primary
+        fun mockEventPublisher(): ApplicationEventPublisher = mock(ApplicationEventPublisher::class.java)
+    }
+
+    @Autowired
     private lateinit var userRepository: UserRepository
 
-    @Mock
+    @Autowired
     private lateinit var eventPublisher: ApplicationEventPublisher
 
-    @Mock
-    private lateinit var firebaseService: FirebaseService
-
-    @Mock
-    private lateinit var tripServiceGrpcClient: TripServiceGrpcClient
-
-    @Mock
-    private lateinit var removeBlockedStub: RemoveBlockedServiceGrpc.RemoveBlockedServiceBlockingStub
-
-    @InjectMocks
+    @Autowired
     private lateinit var userService: UserService
 
     @BeforeEach
     fun setUp() {
-        setupDefaultFirebaseMocks()
+        SecurityContextHolder.clearContext()
+        setupDefaultAuth()
+        userRepository.deleteAll()
+    }
+
+    @AfterEach
+    fun tearDown() {
+        userRepository.deleteAll()
+        SecurityContextHolder.clearContext()
     }
 
     @Test
     fun `createUser success`() {
         val userDto = UserDto(username = "test", email = email, firebaseId = firebaseId)
-
-        `when`(userRepository.findByUsername(userDto.username!!)).thenReturn(Optional.empty())
-        `when`(userRepository.findByEmail(userDto.email!!)).thenReturn(Optional.empty())
-        `when`(userRepository.save(any<User>())).thenAnswer {
-            val user = it.arguments[0] as User
-            user.copy(userId = 1L)
-        }
 
         val result = userService.createUser(userDto)
 
@@ -70,14 +73,16 @@ class UserServiceTest : BaseSecuritySetup() {
         assertEquals(userDto.email, result.email)
         assertEquals(firebaseId, result.firebaseId)
 
-        verify(userRepository).save(any())
+        val savedUser = userRepository.findByUsername("test")
+        assertEquals(true, savedUser.isPresent)
+        assertEquals("test", savedUser.get().username)
     }
 
     @Test
     fun `createUser username exists`() {
-        val userDto = UserDto(username = "test", email = email, firebaseId = firebaseId)
+        userRepository.save(User(username = "test", email = "other@example.com", firebaseId = "other123"))
 
-        `when`(userRepository.findByUsername(userDto.username!!)).thenReturn(Optional.of(mock()))
+        val userDto = UserDto(username = "test", email = email, firebaseId = firebaseId)
 
         assertThrows(UserExceptions.UserAlreadyExistsException::class.java) {
             userService.createUser(userDto)
@@ -86,32 +91,27 @@ class UserServiceTest : BaseSecuritySetup() {
 
     @Test
     fun `createUser email exists`() {
-        val userDto = UserDto(username = "test", email = email, firebaseId = firebaseId)
+        userRepository.save(User(username = "other", email = email, firebaseId = "other123"))
 
-        `when`(firebaseService.extractUidFromToken(token)).thenReturn(firebaseId)
-        `when`(firebaseService.extractEmailFromToken(token)).thenReturn(email)
-        `when`(userRepository.findByEmail(userDto.email!!)).thenReturn(Optional.of(mock()))
+        val userDto = UserDto(username = "test", email = email, firebaseId = firebaseId)
 
         assertThrows(UserExceptions.UserAlreadyExistsException::class.java) {
             userService.createUser(userDto)
         }
     }
 
-
     @Test
     fun `getUserByUsername success`() {
-        val user = User(username = "test", email = "test@example.com", firebaseId = "firebase123")
-        `when`(userRepository.findByUsername("test")).thenReturn(Optional.of(user))
+        userRepository.save(User(username = "test", email = "test@example.com", firebaseId = "firebase123"))
 
         val result = userService.getUser("test", null)
 
-        assertEquals(user.username, result.username)
+        assertEquals("test", result.username)
+        assertEquals("test@example.com", result.email)
     }
 
     @Test
     fun `getUserByUsername not found`() {
-        `when`(userRepository.findByUsername("test")).thenReturn(Optional.empty())
-
         assertThrows(UserExceptions.UserNotFoundException::class.java) {
             userService.getUser("test", null)
         }
@@ -119,18 +119,16 @@ class UserServiceTest : BaseSecuritySetup() {
 
     @Test
     fun `getUserByEmail success`() {
-        val user = User(username = "test", email = "test@example.com", firebaseId = "firebase123")
-        `when`(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user))
+        userRepository.save(User(username = "test", email = "test@example.com", firebaseId = "firebase123"))
 
         val result = userService.getUser(null, "test@example.com")
 
-        assertEquals(user.email, result.email)
+        assertEquals("test", result.username)
+        assertEquals("test@example.com", result.email)
     }
 
     @Test
     fun `getUserByEmail not found`() {
-        `when`(userRepository.findByEmail("test@example.com")).thenReturn(Optional.empty())
-
         assertThrows(UserExceptions.UserNotFoundException::class.java) {
             userService.getUser(null, "test@example.com")
         }
@@ -138,42 +136,59 @@ class UserServiceTest : BaseSecuritySetup() {
 
     @Test
     fun `deleteUser success`() {
-        val user = User(userId = 1L, username = "test", email = "test@example.com", firebaseId = firebaseId)
-
-        `when`(userRepository.findByFirebaseId(firebaseId)).thenReturn(Optional.of(user))
+        userRepository.save(User(username = "test", email = "test@example.com", firebaseId = firebaseId))
 
         userService.deleteUser()
-        verify(userRepository).save(user.copy(deleted = true))
+
+        val deletedUser = userRepository.findByFirebaseId(firebaseId)
+        assertEquals(true, deletedUser.isPresent)
+        assertEquals(true, deletedUser.get().deleted)
     }
 
     @Test
     fun `deleteUser not found`() {
-        `when`(userRepository.findByFirebaseId(firebaseId)).thenReturn(Optional.empty())
-
         assertThrows(UserExceptions.UserNotFoundException::class.java) {
             userService.deleteUser()
         }
-
-        verify(userRepository, never()).delete(any())
     }
 
     @Test
     fun `updateUser success`() {
-        val existingUser = User(userId = 123, email = email, description = "old", firebaseId = firebaseId, username = "testuser")
-        val updatedDto = UserDto(userId = 123, email = email, description = "new", firebaseId = firebaseId, username = "testuser")
+        val savedUser = userRepository.save(
+            User(
+                email = email,
+                description = "old",
+                firebaseId = firebaseId,
+                username = "testuser"
+            )
+        )
 
-        `when`(userRepository.findByUserId(123)).thenReturn(Optional.of(existingUser))
-        `when`(userRepository.save(any())).thenAnswer { it.arguments[0] }
+        val updatedDto = UserDto(
+            userId = savedUser.userId,
+            email = email,
+            description = "new",
+            firebaseId = firebaseId,
+            username = "testuser"
+        )
 
         val result = userService.updateUser(updatedDto)
 
         assertEquals("new", result.description)
+
+        val dbUser = userRepository.findByUserId(savedUser.userId!!)
+        assertEquals(true, dbUser.isPresent)
+        assertEquals("new", dbUser.get().description)
     }
 
     @Test
     fun `updateUser not found`() {
-        val updatedDto = UserDto(userId = 123, username = "new", email = "test@example.com", firebaseId = "firebase123")
-        `when`(userRepository.findByUserId(123)).thenReturn(Optional.empty())
+        val updatedDto = UserDto(
+            userId = 999,
+            username = "new",
+            email = "test@example.com",
+            firebaseId = "firebase123"
+        )
+
         assertThrows(UserExceptions.UserNotFoundException::class.java) {
             userService.updateUser(updatedDto)
         }
@@ -181,8 +196,14 @@ class UserServiceTest : BaseSecuritySetup() {
 
     @Test
     fun `username exists`() {
-        val existingUser = User(userId = 123, email = email, description = "old", firebaseId = firebaseId, username = "testuser")
-        `when`(userRepository.findByUsername("testuser")).thenReturn(Optional.of(existingUser))
+        userRepository.save(
+            User(
+                email = email,
+                description = "old",
+                firebaseId = firebaseId,
+                username = "testuser"
+            )
+        )
 
         val result = userService.checkIfUserExists("testuser", null)
         assertEquals(true, result)
@@ -190,15 +211,96 @@ class UserServiceTest : BaseSecuritySetup() {
 
     @Test
     fun `email exists`() {
-        val existingUser = User(userId = 123, email = email, description = "old", firebaseId = firebaseId, username = "testuser")
-        `when`(userRepository.findByEmail(email)).thenReturn(Optional.of(existingUser))
+        userRepository.save(
+            User(
+                email = email,
+                description = "old",
+                firebaseId = firebaseId,
+                username = "testuser"
+            )
+        )
 
         val result = userService.checkIfUserExists(null, email)
         assertEquals(true, result)
     }
 
-    private fun setupDefaultFirebaseMocks() {
-        lenient().`when`(firebaseService.extractUidFromToken(token)).thenReturn(firebaseId)
-        lenient().`when`(firebaseService.extractEmailFromToken(token)).thenReturn(email)
+    @Test
+    fun `searchUsersByUsername returns matching users`() {
+        userRepository.save(User(username = "testuser1", email = "test1@example.com", firebaseId = "firebase1"))
+        userRepository.save(User(username = "testuser2", email = "test2@example.com", firebaseId = "firebase2"))
+
+        val result = userService.searchUsersByUsername("test", 0, 10)
+
+        assertEquals(2, result.size)
+        assertEquals(true, result.any { it.username == "testuser1" })
+        assertEquals(true, result.any { it.username == "testuser2" })
+    }
+
+    @Test
+    fun `searchUsersByUsername returns empty list when no matches found`() {
+        userRepository.save(User(username = "alice", email = "alice@example.com", firebaseId = "firebase1"))
+        userRepository.save(User(username = "bob", email = "bob@example.com", firebaseId = "firebase2"))
+
+        val result = userService.searchUsersByUsername("nonexistent", 0, 10)
+
+        assertEquals(0, result.size)
+    }
+
+    @Test
+    fun `searchUsersByUsername returns empty list for blank query`() {
+        val result = userService.searchUsersByUsername("", 0, 10)
+
+        assertEquals(0, result.size)
+    }
+
+    @Test
+    fun `searchUsersByUsername returns empty list for whitespace query`() {
+        val result = userService.searchUsersByUsername("   ", 0, 10)
+
+        assertEquals(0, result.size)
+    }
+
+    @Test
+    fun `searchUsersByUsername handles pagination correctly`() {
+        userRepository.save(User(username = "testuser1", email = "test1@example.com", firebaseId = "firebase1"))
+        userRepository.save(User(username = "testuser2", email = "test2@example.com", firebaseId = "firebase2"))
+        userRepository.save(User(username = "testuser3", email = "test3@example.com", firebaseId = "firebase3"))
+
+        val result = userService.searchUsersByUsername("test", 0, 2)
+
+        assertEquals(2, result.size)
+    }
+
+    @Test
+    fun `searchUsersByUsername performs partial matching`() {
+        userRepository.save(User(username = "johndoe", email = "john@example.com", firebaseId = "firebase1"))
+        userRepository.save(User(username = "janedoe", email = "jane@example.com", firebaseId = "firebase2"))
+
+        val result = userService.searchUsersByUsername("doe", 0, 10)
+
+        assertEquals(2, result.size)
+        assertEquals(true, result.any { it.username == "johndoe" })
+        assertEquals(true, result.any { it.username == "janedoe" })
+    }
+
+    @Test
+    fun `searchUsersByUsername handles single character query`() {
+        userRepository.save(User(username = "alice", email = "alice@example.com", firebaseId = "firebase1"))
+
+        val result = userService.searchUsersByUsername("a", 0, 10)
+
+        assertEquals(1, result.size)
+        assertEquals("alice", result[0].username)
+    }
+
+    @Test
+    fun `searchUsersByUsername excludes deleted users`() {
+        userRepository.save(User(username = "activeuser", email = "active@example.com", firebaseId = "firebase1", deleted = false))
+        userRepository.save(User(username = "deleteduser", email = "deleted@example.com", firebaseId = "firebase2", deleted = true))
+
+        val result = userService.searchUsersByUsername("user", 0, 10)
+
+        assertEquals(1, result.size)
+        assertEquals("activeuser", result[0].username)
     }
 }

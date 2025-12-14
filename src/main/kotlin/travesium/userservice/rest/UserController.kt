@@ -516,6 +516,41 @@ class UserController(private val userService: UserService) : Logging {
         return ResponseEntity.ok(exists)
     }
 
+    @GetMapping("/search")
+    @Operation(
+        operationId = "searchUsersByUsername",
+        tags = ["User"],
+        summary = "Search users by username.",
+        description = "Search users by username with partial match (case-insensitive). Returns paginated results.",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Successfully retrieved the list of users.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = UserDto::class)
+                )]
+            ),
+            ApiResponse(
+                responseCode = "400",
+                description = "Bad Request - Invalid query parameter."
+            )
+        ]
+    )
+    fun searchUsersByUsername(
+        @RequestParam query: String,
+        @RequestParam(defaultValue = "0") offset: Int,
+        @RequestParam(defaultValue = "20") limit: Int
+    ): ResponseEntity<List<UserDto>> {
+        if (query.isBlank()) {
+            return ResponseEntity.ok(emptyList())
+        }
+
+        val users = userService.searchUsersByUsername(query, offset, limit)
+        logger.info("Found ${users.size} users matching query '$query'")
+        return ResponseEntity.ok(users)
+    }
+
     // TODO: delete users da se tudi iz collection izbriše (da tm k se collectioni prkazujejo, ne prikaže teh k so izbrisani, oke tole samo če bo čas)
     // TODO: when user is blocked make a request to trip service to remove user's trips from feed of the blocker
 }

@@ -57,4 +57,7 @@ interface UserRepository : JpaRepository<User, String> {
     )
 
 
+
+    @Query("SELECT u FROM User u WHERE LOWER(u.username) LIKE LOWER(CONCAT('%', :query, '%')) AND u.deleted = false")
+    fun searchUsersByUsername(@Param("query") query: String, pageable: Pageable): List<User>
 }
