@@ -22,16 +22,16 @@ import travesium.userservice.dto.UserDto
 import travesium.userservice.exceptions.UserExceptions
 import travesium.userservice.security.BaseSecuritySetup
 import travesium.userservice.security.MockFirebaseConfig
+import travesium.userservice.security.MockGrpcConfig
 import travesium.userservice.service.UserService
 
 /**
- * User Service Tests with H2 Database (no repository mocking)
  * @author Maja Razinger
  */
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-@Import(MockFirebaseConfig::class)
+@Import(MockFirebaseConfig::class, MockGrpcConfig::class, UserServiceTests.TestConfig::class)
 class UserServiceTests : BaseSecuritySetup() {
 
     @TestConfiguration
