@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prometheus metrics endpoint
 - Add gRPC support for user service
 - Add circuit breaker and retry logic for external service calls
+- ELK stack integration
 
 ## [1.1.0] - 2025-12-03
 ### Added
