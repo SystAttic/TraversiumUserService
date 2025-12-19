@@ -3,6 +3,7 @@ package travesium.userservice.rest
 
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.ExampleObject
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import org.apache.logging.log4j.kotlin.Logging
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*
 import travesium.userservice.dto.UserDto
 import travesium.userservice.exceptions.UserExceptions
 import travesium.userservice.service.UserService
+import io.swagger.v3.oas.annotations.parameters.RequestBody as SwaggerRequestBody
 
 
 /**
@@ -27,6 +29,33 @@ class UserController(private val userService: UserService) : Logging {
         tags = ["User"],
         summary = "Create a user.",
         description = "Registers a new user.",
+        requestBody = SwaggerRequestBody(
+            description = "User data for registration",
+            required = true,
+            content = [Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = Schema(implementation = UserDto::class),
+                examples = [
+                    ExampleObject(
+                        name = "CreateUserExample",
+                        summary = "Example user registration",
+                        value = """
+                        {
+                          "username": "johndoe",
+                          "email": "johndoe@example.com",
+                          "displayName": "John Doe",
+                          "firstName": "John",
+                          "lastName": "Doe",
+                          "countryOfOrigin": "USA",
+                          "gender": "Male",
+                          "description": "Travel enthusiast exploring the world",
+                          "firebaseId": "firebase_uid_123"
+                        }
+                        """
+                    )
+                ]
+            )]
+        ),
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -124,6 +153,34 @@ class UserController(private val userService: UserService) : Logging {
         tags = ["User"],
         summary = "Update a user by email.",
         description = "Update a user by email.",
+        requestBody = SwaggerRequestBody(
+            description = "Updated user data",
+            required = true,
+            content = [Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = Schema(implementation = UserDto::class),
+                examples = [
+                    ExampleObject(
+                        name = "UpdateUserExample",
+                        summary = "Example user update",
+                        value = """
+                        {
+                          "username": "johndoe",
+                          "email": "johndoe@example.com",
+                          "displayName": "John D.",
+                          "firstName": "John",
+                          "lastName": "Doe",
+                          "countryOfOrigin": "Canada",
+                          "gender": "Male",
+                          "description": "Updated bio - Adventure seeker and photographer",
+                          "avatarPhotoReference": "profile/johndoe/avatar.jpg",
+                          "coverPhotoReference": "profile/johndoe/cover.jpg"
+                        }
+                        """
+                    )
+                ]
+            )]
+        ),
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -155,6 +212,26 @@ class UserController(private val userService: UserService) : Logging {
         tags = ["User"],
         summary = "Get a list of users by usernames.",
         description = "Return users named in the list of usernames.",
+        requestBody = SwaggerRequestBody(
+            description = "List of usernames to retrieve",
+            required = true,
+            content = [Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                examples = [
+                    ExampleObject(
+                        name = "UsernameListExample",
+                        summary = "Example list of usernames",
+                        value = """
+                        [
+                          "johndoe",
+                          "janedoe",
+                          "traveler123"
+                        ]
+                        """
+                    )
+                ]
+            )]
+        ),
         responses = [
             ApiResponse(
                 responseCode = "200",
