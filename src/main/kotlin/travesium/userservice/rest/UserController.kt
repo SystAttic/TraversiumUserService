@@ -629,5 +629,4 @@ class UserController(private val userService: UserService) : Logging {
     }
 
     // TODO: delete users da se tudi iz collection izbriše (da tm k se collectioni prkazujejo, ne prikaže teh k so izbrisani, oke tole samo če bo čas)
-    // TODO: when user is blocked make a request to trip service to remove user's trips from feed of the blocker
 }

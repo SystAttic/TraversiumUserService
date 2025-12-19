@@ -297,7 +297,8 @@ class UserService(
             collectionReferenceId = null,
             nodeReferenceId = null,
             commentReferenceId = null,
-            mediaReferenceId = null
+            mediaReferenceId = null,
+            mediaCount = null
         )
 
         eventPublisher.publishEvent(event)
