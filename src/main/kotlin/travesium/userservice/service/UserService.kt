@@ -30,6 +30,7 @@ class UserService(
     private val userRepository: UserRepository,
     private val eventPublisher: ApplicationEventPublisher,
     private val tripServiceGrpcClient: TripServiceGrpcClient,
+    private val moderationServiceGrpcClient: ModerationServiceGrpcClient,
     private val firebaseService: FirebaseService)
 {
 
@@ -44,6 +45,8 @@ class UserService(
         if (userRepository.findByUsername(userDto.username).isPresent || userRepository.findByEmail(userDto.email).isPresent) {
             throw UserExceptions.UserAlreadyExistsException("User with username '${userDto.username}' or email '${userDto.email}' already exists")
         }
+
+        validateUserContentModeration(userDto.description, userDto.displayName, userDto.firstName, userDto.lastName)
 
         return UserMapper.toEntity(userDto).let { user ->
             val savedUser = userRepository.save(user)
@@ -91,6 +94,8 @@ class UserService(
         val existingUser = userRepository.findByUserId(userDto.userId).orElseThrow { UserExceptions.UserNotFoundException() }
 
         checkAuthorization(existingUser.firebaseId!!, existingUser.email!!)
+
+        validateUserContentModeration(userDto.description, userDto.displayName, userDto.firstName, userDto.lastName)
 
         val updatedUser = existingUser.copy(
             displayName = userDto.displayName ?: existingUser.displayName,
@@ -333,6 +338,28 @@ class UserService(
         }
 
         return changedFields
+    }
+
+    private fun validateUserContentModeration(description: String?, displayName: String?, firstName: String?, lastName: String?) {
+        val allowed = try {
+            val textToModerate = buildString {
+                description?.let { append(it).append(" ") }
+                displayName?.let { append(it).append(" ") }
+                firstName?.let { append(it).append(" ") }
+                lastName?.let { append(it) }
+            }
+            if (textToModerate.isNotBlank()) {
+                moderationServiceGrpcClient.isTextAllowed(textToModerate)
+            } else {
+                true
+            }
+        } catch (e: Exception) {
+            throw UserExceptions.UserModerationException("Moderation service unavailable", e)
+        }
+
+        if (!allowed) {
+            throw UserExceptions.UserModerationException("User content violates moderation policy!")
+        }
     }
 
     private fun publishAuditEvent(firebaseId: String, action: String, userId: Long, vararg metadata: Pair<String, String>) {

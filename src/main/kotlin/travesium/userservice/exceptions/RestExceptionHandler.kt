@@ -75,6 +75,29 @@ class RestExceptionHandler : Logging {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse)
     }
 
+    @ExceptionHandler(UserExceptions.UserModerationException::class)
+    fun handleUserModerationException(
+        ex: UserExceptions.UserModerationException,
+        request: WebRequest
+    ): ResponseEntity<ErrorResponse> {
+        // Check if it's a service unavailable error (has a cause)
+        val status = if (ex.cause != null) {
+            logger.error("Moderation service unavailable: ${ex.message}", ex)
+            HttpStatus.INTERNAL_SERVER_ERROR
+        } else {
+            logger.info("Moderation policy violation: ${ex.message}")
+            HttpStatus.BAD_REQUEST
+        }
+
+        val errorResponse = ErrorResponse(
+            message = ex.message ?: "Moderation check failed",
+            status = status.value(),
+            timestamp = OffsetDateTime.now(),
+            path = request.getDescription(false).removePrefix("uri=")
+        )
+        return ResponseEntity.status(status).body(errorResponse)
+    }
+
     @ExceptionHandler(Exception::class)
     fun handleGenericException(
         ex: Exception,

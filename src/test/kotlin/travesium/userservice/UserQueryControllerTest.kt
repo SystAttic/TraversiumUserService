@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional
 import travesium.userservice.dto.UserDto
 import travesium.userservice.security.BaseSecuritySetup
 import travesium.userservice.security.MockFirebaseConfig
+import travesium.userservice.security.MockGrpcConfig
 import travesium.userservice.security.TestMultitenancyConfig
 import travesium.userservice.service.UserService
 import kotlin.test.Test
@@ -36,7 +37,7 @@ import kotlin.test.Test
 @ExtendWith(SpringExtension::class)
 @Transactional
 @DirtiesContext
-@ContextConfiguration(classes = [MockFirebaseConfig::class, TestMultitenancyConfig::class])
+@ContextConfiguration(classes = [MockFirebaseConfig::class, TestMultitenancyConfig::class, MockGrpcConfig::class])
 class UserQueryControllerTest() : BaseSecuritySetup() {
 
     @Autowired

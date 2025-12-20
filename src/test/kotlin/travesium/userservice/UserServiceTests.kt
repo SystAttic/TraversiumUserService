@@ -11,10 +11,10 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.Primary
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.ContextConfiguration
 import org.springframework.transaction.annotation.Transactional
 import travesium.userservice.db.model.User
 import travesium.userservice.db.repository.UserRepository
@@ -31,7 +31,7 @@ import travesium.userservice.service.UserService
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-@Import(MockFirebaseConfig::class, MockGrpcConfig::class, UserServiceTests.TestConfig::class)
+@ContextConfiguration(classes = [MockFirebaseConfig::class, MockGrpcConfig::class, UserServiceTests.TestConfig::class])
 class UserServiceTests : BaseSecuritySetup() {
 
     @TestConfiguration

@@ -190,6 +190,13 @@
             <version>1.1.0</version>
         </dependency>
 
+        <!-- Moderation -->
+        <dependency>
+            <groupId>traversium</groupId>
+            <artifactId>moderation-proto</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
         <!-- gRPC Java runtime -->
         <dependency>
             <groupId>org.springframework.grpc</groupId>
@@ -339,6 +346,13 @@
         <repository>
             <id>github-trip</id>
             <url>https://maven.pkg.github.com/SystAttic/TraversiumTripService</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>github-moderation</id>
+            <url>https://maven.pkg.github.com/SystAttic/TraversiumModerationService</url>
             <snapshots>
                 <enabled>true</enabled>
             </snapshots>

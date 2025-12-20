@@ -5,6 +5,7 @@ import io.grpc.ManagedChannelBuilder
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import traversium.moderation.textmoderation.TextModerationServiceGrpc
 import traversium.tripservice.removeblocked.RemoveBlockedServiceGrpc
 
 /**
@@ -16,12 +17,27 @@ class GrpcClientConfig(
     private val grpcProperties: GrpcProperties,
 ) {
 
-    @Bean
-    fun grpcClient(): ManagedChannel {
-        return ManagedChannelBuilder.forAddress(grpcProperties.host, grpcProperties.port).usePlaintext().build()
+    @Bean(name = ["tripGrpcChannel"])
+    fun tripGrpcChannel(): ManagedChannel {
+        return ManagedChannelBuilder
+            .forAddress(grpcProperties.trip.host, grpcProperties.trip.port)
+            .usePlaintext()
+            .build()
+    }
+
+    @Bean(name = ["moderationGrpcChannel"])
+    fun moderationGrpcChannel(): ManagedChannel {
+        return ManagedChannelBuilder
+            .forAddress(grpcProperties.moderation.host, grpcProperties.moderation.port)
+            .usePlaintext()
+            .build()
     }
 
     @Bean
-    fun removeBlockedStub(channel: ManagedChannel): RemoveBlockedServiceGrpc.RemoveBlockedServiceBlockingStub =
-        RemoveBlockedServiceGrpc.newBlockingStub(channel)
+    fun removeBlockedStub(tripGrpcChannel: ManagedChannel): RemoveBlockedServiceGrpc.RemoveBlockedServiceBlockingStub =
+        RemoveBlockedServiceGrpc.newBlockingStub(tripGrpcChannel)
+
+    @Bean
+    fun textModerationStub(moderationGrpcChannel: ManagedChannel): TextModerationServiceGrpc.TextModerationServiceBlockingStub =
+        TextModerationServiceGrpc.newBlockingStub(moderationGrpcChannel)
 }

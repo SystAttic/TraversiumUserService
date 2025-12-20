@@ -13,4 +13,6 @@ class UserExceptions {
     class UnauthorizedException(message: String) : RuntimeException(message)
 
     class RemoteServiceException(serviceName: String) : RuntimeException("Error communicating with remote service: $serviceName")
+
+    class UserModerationException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 }
