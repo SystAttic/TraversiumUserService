@@ -2,6 +2,7 @@ package travesium.userservice.event
 
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.header.internals.RecordHeader
+import org.apache.logging.log4j.kotlin.Logging
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.stereotype.Component
@@ -19,10 +20,11 @@ import travesium.userservice.kafka.KafkaProperties
 class AuditEventListener(
     private val kafkaTemplate: KafkaTemplate<String, Any>,
     private val kafkaProperties: KafkaProperties
-) {
+): Logging {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     fun sendAuditDataToKafka(auditDto: AuditStreamData) {
+        logger.info { "Sending audit data to kafka" }
         val tenantId = TenantContext.getTenant()
 
         val record = ProducerRecord<String, Any>(kafkaProperties.auditTopic!!, auditDto)
@@ -31,5 +33,6 @@ class AuditEventListener(
         }
 
         kafkaTemplate.send(record)
+        logger.info { "Successfully sent audit data to kafka" }
     }
 }
