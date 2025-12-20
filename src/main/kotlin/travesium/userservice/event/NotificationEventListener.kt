@@ -32,7 +32,12 @@ class NotificationEventListener(
             record.headers().add(RecordHeader("tenantId", it.toByteArray()))
         }
 
-        kafkaTemplate.send(record)
+        try {
+            kafkaTemplate.send(record)
+        } catch (e: Exception) {
+            logger.error("Failed to send notification data to kafka: ${e.message}")
+            throw e
+        }
         logger.info { "Successfully sent notification data to kafka" }
     }
 }
