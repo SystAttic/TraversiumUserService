@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ELK stack integration
 - Add examples to swagger documentation
 - Support for config server
+- Add documentation
 
 ## [1.1.0] - 2025-12-03
 ### Added

@@ -5,9 +5,7 @@ A microservice for managing users in the Traversium platform. This service handl
 ## Table of Contents
 
 - [Features](#features)
-- [Technology Stack](#technology-stack)
 - [Prerequisites](#prerequisites)
-- [Installation](#installation)
 - [Configuration](#configuration)
 - [Running the Service](#running-the-service)
 - [API Documentation](#api-documentation)
@@ -15,9 +13,6 @@ A microservice for managing users in the Traversium platform. This service handl
 - [Database](#database)
 - [Integration](#integration)
 - [Monitoring and Health](#monitoring-and-health)
-- [Testing](#testing)
-- [Deployment](#deployment)
-- [Contributing](#contributing)
 
 ## Features
 
