@@ -3,6 +3,7 @@ package travesium.userservice.grpc
 import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
 import org.springframework.boot.context.properties.EnableConfigurationProperties
+import org.springframework.cloud.context.config.annotation.RefreshScope
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import traversium.moderation.textmoderation.TextModerationServiceGrpc
@@ -12,6 +13,7 @@ import traversium.tripservice.removeblocked.RemoveBlockedServiceGrpc
  * @author Maja Razinger
  */
 @Configuration
+@RefreshScope
 @EnableConfigurationProperties(GrpcProperties::class)
 class GrpcClientConfig(
     private val grpcProperties: GrpcProperties,

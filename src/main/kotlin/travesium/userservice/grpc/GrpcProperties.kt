@@ -7,12 +7,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties
  */
 
 @ConfigurationProperties(prefix = "grpc")
-class GrpcProperties(
-    val trip: ServerConfig = ServerConfig(port = 9091),
-    val moderation: ServerConfig = ServerConfig(port = 9090)
-)
+class GrpcProperties {
+    var trip: ServerConfig = ServerConfig(host = "localhost", port = 9091)
+    var moderation: ServerConfig = ServerConfig(host = "localhost", port = 9090)
+}
 
-data class ServerConfig(
-    val host: String = "localhost",
-    val port: Int
+class ServerConfig(
+    var host: String = "localhost",
+    var port: Int = 9090
 )
