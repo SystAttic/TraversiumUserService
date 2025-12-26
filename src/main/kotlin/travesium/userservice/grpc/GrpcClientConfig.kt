@@ -13,13 +13,13 @@ import traversium.tripservice.removeblocked.RemoveBlockedServiceGrpc
  * @author Maja Razinger
  */
 @Configuration
-@RefreshScope
 @EnableConfigurationProperties(GrpcProperties::class)
 class GrpcClientConfig(
     private val grpcProperties: GrpcProperties,
 ) {
 
     @Bean(name = ["tripGrpcChannel"])
+    @RefreshScope
     fun tripGrpcChannel(): ManagedChannel {
         return ManagedChannelBuilder
             .forAddress(grpcProperties.trip.host, grpcProperties.trip.port)
@@ -28,6 +28,7 @@ class GrpcClientConfig(
     }
 
     @Bean(name = ["moderationGrpcChannel"])
+    @RefreshScope
     fun moderationGrpcChannel(): ManagedChannel {
         return ManagedChannelBuilder
             .forAddress(grpcProperties.moderation.host, grpcProperties.moderation.port)
