@@ -10,6 +10,7 @@ import org.apache.logging.log4j.kotlin.Logging
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import travesium.userservice.dto.ErrorResponse
 import travesium.userservice.dto.UserDto
 import travesium.userservice.exceptions.UserExceptions
 import travesium.userservice.service.UserService
@@ -67,15 +68,27 @@ class UserController(private val userService: UserService) : Logging {
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "Bad Request - Invalid user data provided."
+                description = "Bad Request - Invalid user data provided.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             ),
             ApiResponse(
                 responseCode = "403",
-                description = "Forbidden - Unauthorized to create user."
+                description = "Forbidden - Unauthorized to create user.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             ),
             ApiResponse(
                 responseCode = "409",
-                description = "Conflict - User with the same username or email already exists."
+                description = "Conflict - User with the same username or email already exists.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             )
         ]
     )
@@ -102,7 +115,19 @@ class UserController(private val userService: UserService) : Logging {
             ),
             ApiResponse(
                 responseCode = "404",
-                description = "Not found - User not found."
+                description = "Not found - User not found.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
+            ),
+            ApiResponse(
+                responseCode = "400",
+                description = "Bad Request - Neither username nor email provided.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             )
         ]
     )
@@ -133,11 +158,19 @@ class UserController(private val userService: UserService) : Logging {
             ),
             ApiResponse(
                 responseCode = "403",
-                description = "Forbidden - Unauthorized to delete user."
+                description = "Forbidden - Unauthorized to delete user.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             ),
             ApiResponse(
                 responseCode = "404",
-                description = "Not found - User not found."
+                description = "Not found - User not found.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             )
         ]
     )
@@ -192,11 +225,35 @@ class UserController(private val userService: UserService) : Logging {
             ),
             ApiResponse(
                 responseCode = "403",
-                description = "Forbidden - Unauthorized to update user."
+                description = "Forbidden - Unauthorized to update user.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             ),
             ApiResponse(
                 responseCode = "404",
-                description = "Not found - User not found."
+                description = "Not found - User not found.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
+            ),
+            ApiResponse(
+                responseCode = "400",
+                description = "Bad Request - Invalid user data or moderation policy violation.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
+            ),
+            ApiResponse(
+                responseCode = "500",
+                description = "Internal Server Error - Moderation service unavailable.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             )
         ]
     )
@@ -243,7 +300,11 @@ class UserController(private val userService: UserService) : Logging {
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "Bad Request - Invalid list of usernames provided."
+                description = "Bad Request - Invalid list of usernames provided.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             )
         ]
     )
@@ -270,15 +331,27 @@ class UserController(private val userService: UserService) : Logging {
             ),
             ApiResponse(
                 responseCode = "403",
-                description = "Forbidden - Unauthorized to follow user."
+                description = "Forbidden - Unauthorized to follow user.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             ),
             ApiResponse(
                 responseCode = "404",
-                description = "Not found - User not found."
+                description = "Not found - User not found.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "Bad Request - Invalid follow operation."
+                description = "Bad Request - Invalid follow operation.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             )
         ]
     )
@@ -303,15 +376,27 @@ class UserController(private val userService: UserService) : Logging {
             ),
             ApiResponse(
                 responseCode = "403",
-                description = "Forbidden - Unauthorized to follow user."
+                description = "Forbidden - Unauthorized to follow user.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             ),
             ApiResponse(
                 responseCode = "404",
-                description = "Not found - User not found."
+                description = "Not found - User not found.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "Bad Request - Invalid unfollow operation."
+                description = "Bad Request - Invalid unfollow operation.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             )
         ]
     )
@@ -340,7 +425,11 @@ class UserController(private val userService: UserService) : Logging {
             ),
             ApiResponse(
                 responseCode = "404",
-                description = "Not found - User not found."
+                description = "Not found - User not found.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             )
         ]
     )
@@ -369,7 +458,11 @@ class UserController(private val userService: UserService) : Logging {
             ),
             ApiResponse(
                 responseCode = "404",
-                description = "Not found - User not found."
+                description = "Not found - User not found.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             )
         ]
     )
@@ -398,7 +491,11 @@ class UserController(private val userService: UserService) : Logging {
             ),
             ApiResponse(
                 responseCode = "404",
-                description = "Not found - User not found."
+                description = "Not found - User not found.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             )
         ]
     )
@@ -423,7 +520,11 @@ class UserController(private val userService: UserService) : Logging {
             ),
             ApiResponse(
                 responseCode = "404",
-                description = "Not found - User not found."
+                description = "Not found - User not found.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             )
         ]
     )
@@ -444,15 +545,27 @@ class UserController(private val userService: UserService) : Logging {
             ),
             ApiResponse(
                 responseCode = "403",
-                description = "Forbidden - Unauthorized to follow user."
+                description = "Forbidden - Unauthorized to follow user.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             ),
             ApiResponse(
                 responseCode = "404",
-                description = "Not found - User not found."
+                description = "Not found - User not found.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "Bad Request - Invalid block operation."
+                description = "Bad Request - Invalid block operation.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             )
         ]
     )
@@ -478,15 +591,27 @@ class UserController(private val userService: UserService) : Logging {
             ),
             ApiResponse(
                 responseCode = "403",
-                description = "Forbidden - Unauthorized to follow user."
+                description = "Forbidden - Unauthorized to follow user.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             ),
             ApiResponse(
                 responseCode = "404",
-                description = "Not found - User not found."
+                description = "Not found - User not found.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "Bad Request - Invalid unblock operation."
+                description = "Bad Request - Invalid unblock operation.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             )
         ]
     )
@@ -515,11 +640,19 @@ class UserController(private val userService: UserService) : Logging {
             ),
             ApiResponse(
                 responseCode = "403",
-                description = "Forbidden - Unauthorized to follow user."
+                description = "Forbidden - Unauthorized to follow user.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             ),
             ApiResponse(
                 responseCode = "404",
-                description = "Not found - User not found."
+                description = "Not found - User not found.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             )
         ]
     )
@@ -547,11 +680,19 @@ class UserController(private val userService: UserService) : Logging {
             ),
             ApiResponse(
                 responseCode = "403",
-                description = "Forbidden - Unauthorized to follow user."
+                description = "Forbidden - Unauthorized to follow user.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             ),
             ApiResponse(
                 responseCode = "404",
-                description = "Not found - User not found."
+                description = "Not found - User not found.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             )
         ]
     )
@@ -576,7 +717,11 @@ class UserController(private val userService: UserService) : Logging {
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "Bad Request - Neither username nor email provided."
+                description = "Bad Request - Neither username nor email provided.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             )
         ]
     )
@@ -610,7 +755,11 @@ class UserController(private val userService: UserService) : Logging {
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "Bad Request - Invalid query parameter."
+                description = "Bad Request - Invalid query parameter.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class)
+                )]
             )
         ]
     )

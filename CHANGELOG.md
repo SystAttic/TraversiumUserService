@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add gRPC support for user service
 - Add circuit breaker and retry logic for external service calls
 - ELK stack integration
-- Add examples to swagger documentation
+- Add example request and responses to swagger documentation
 - Support for config server
 - Add documentation
 - Keycloak security for service-to-service gRPC communication
