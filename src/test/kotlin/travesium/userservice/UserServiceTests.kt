@@ -5,18 +5,17 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mockito.mock
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Primary
 import org.springframework.security.core.context.SecurityContextHolder
-import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
-import org.springframework.test.context.junit.jupiter.SpringExtension
 import org.springframework.transaction.annotation.Transactional
 import travesium.userservice.db.model.User
 import travesium.userservice.db.repository.UserRepository
@@ -30,10 +29,10 @@ import travesium.userservice.service.UserService
 /**
  * @author Maja Razinger
  */
+@SpringBootTest
+@AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
-@DirtiesContext
-@ExtendWith(SpringExtension::class)
 @ContextConfiguration(classes = [MockFirebaseConfig::class, MockGrpcConfig::class, UserServiceTests.TestConfig::class])
 class UserServiceTests : BaseSecuritySetup() {
 
