@@ -58,6 +58,7 @@ import kotlin.test.Test
         "spring.kafka.notification-topic=test-notifications",
         "spring.kafka.audit-topic=test-audit",
         "spring.kafka.consumer.group-id=user-service-tests",
+        "spring.cloud.config.enabled=false"
     ]
 )
 @ContextConfiguration(classes = [KafkaTests.KafkaConsumerConfiguration::class, MockFirebaseConfig::class, TestMultitenancyConfig::class, MockGrpcConfig::class])
