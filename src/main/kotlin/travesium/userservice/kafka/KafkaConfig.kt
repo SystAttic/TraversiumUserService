@@ -27,10 +27,10 @@ import java.util.concurrent.TimeUnit
 @EnableKafka
 @EnableConfigurationProperties(KafkaProperties::class)
 @ConditionalOnProperty(prefix = "spring.kafka", name = ["bootstrap-servers"])
-@RefreshScope
 class KafkaConfig {
 
     @Bean
+    @RefreshScope
     fun producerFactory(
         kafkaProperties: KafkaProperties,
         environment: Environment,
@@ -49,6 +49,7 @@ class KafkaConfig {
     }
 
     @Bean
+    @RefreshScope
     fun customKafkaTemplate(
         producerFactory: ProducerFactory<String, Any>,
         @Value("\${${KAFKA_PROPERTY_PREFIX}health.indicator.timeout.ms:1000}")

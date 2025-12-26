@@ -37,10 +37,12 @@ class GrpcClientConfig(
     }
 
     @Bean
+    @RefreshScope
     fun removeBlockedStub(tripGrpcChannel: ManagedChannel): RemoveBlockedServiceGrpc.RemoveBlockedServiceBlockingStub =
         RemoveBlockedServiceGrpc.newBlockingStub(tripGrpcChannel)
 
     @Bean
+    @RefreshScope
     fun textModerationStub(moderationGrpcChannel: ManagedChannel): TextModerationServiceGrpc.TextModerationServiceBlockingStub =
         TextModerationServiceGrpc.newBlockingStub(moderationGrpcChannel)
 }
