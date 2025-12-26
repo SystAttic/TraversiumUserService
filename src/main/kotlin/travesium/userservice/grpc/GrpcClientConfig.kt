@@ -35,9 +35,14 @@ class GrpcClientConfig(
 
     @Bean
     fun removeBlockedStub(tripGrpcChannel: ManagedChannel): RemoveBlockedServiceGrpc.RemoveBlockedServiceBlockingStub =
-        RemoveBlockedServiceGrpc.newBlockingStub(tripGrpcChannel)
+        RemoveBlockedServiceGrpc
+            .newBlockingStub(tripGrpcChannel)
 
     @Bean
-    fun textModerationStub(moderationGrpcChannel: ManagedChannel): TextModerationServiceGrpc.TextModerationServiceBlockingStub =
-        TextModerationServiceGrpc.newBlockingStub(moderationGrpcChannel)
+    fun textModerationStub(
+        moderationGrpcChannel: ManagedChannel,
+        authInterceptor: GrpcAuthClientInterceptor): TextModerationServiceGrpc.TextModerationServiceBlockingStub =
+        TextModerationServiceGrpc
+            .newBlockingStub(moderationGrpcChannel)
+            .withInterceptors(authInterceptor)
 }

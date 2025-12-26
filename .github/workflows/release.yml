@@ -93,7 +93,7 @@ jobs:
           git tag -a "v${{ steps.versions.outputs.release_version }}" -m "Release version ${{ steps.versions.outputs.release_version }}"
 
       - name: Build with Maven
-        run: mvn clean package -DskipTests
+        run: mvn clean package
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.PACKAGE_READ_TOKEN }}

@@ -46,7 +46,7 @@ jobs:
           fi
 
       - name: Build with Maven with tests
-        run: mvn clean package -DskipTests
+        run: mvn clean package
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.PACKAGE_READ_TOKEN }}

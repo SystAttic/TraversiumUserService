@@ -104,6 +104,31 @@ gRPC client configuration for inter-service communication:
 - **`grpc.moderation.host`**: Hostname of the ModerationService gRPC server
 - **`grpc.moderation.port`**: Port of the ModerationService gRPC server (content moderation for user profiles)
 
+### Keycloak OAuth2 Configuration
+
+Service-to-service authentication configuration for secure gRPC communication:
+
+```properties
+security.oauth2.client.token-uri=<your-issuer-url>
+security.oauth2.client.client-id=user-service
+security.oauth2.client.client-secret=<your-client-secret>
+security.oauth2.client.grant-type=client_credentials
+security.oauth2.client.refresh-skew-seconds=30
+```
+
+**Property Descriptions:**
+
+- **`security.oauth2.client.token-uri`**: Keycloak endpoint URL for obtaining access tokens
+  - Example: `http://localhost:8202/auth/realms/traversium/protocol/openid-connect/token`
+
+- **`security.oauth2.client.client-id`**: Client ID registered in Keycloak for UserService
+
+- **`security.oauth2.client.client-secret`**: Confidential client secret from Keycloak
+
+- **`security.oauth2.client.grant-type`**: OAuth2 grant type for authentication
+  - Use `client_credentials` for service-to-service (machine-to-machine) authentication
+
+- **`security.oauth2.client.refresh-skew-seconds`**: Token refresh buffer time in seconds (default: 30)
 ### Resilience4j Configuration
 
 Circuit breaker and retry mechanisms for gRPC calls:
