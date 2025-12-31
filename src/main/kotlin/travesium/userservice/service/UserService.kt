@@ -80,6 +80,10 @@ class UserService(
     fun deleteUser() {
         val user = getUserFromContext()
 
+        if (user.deleted) {
+            throw UserExceptions.InvalidUserDataException("User is already deleted.")
+        }
+
         val deletedUser = user.copy(deleted = true)
         userRepository.save(deletedUser)
 
