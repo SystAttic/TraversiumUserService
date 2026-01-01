@@ -24,6 +24,7 @@ class RestExceptionHandler : Logging {
         val errorResponse = ErrorResponse(
             message = ex.message ?: "User not found",
             status = HttpStatus.NOT_FOUND.value(),
+            errorCode = "USER_NOT_FOUND",
             timestamp = OffsetDateTime.now(),
             path = request.getDescription(false).removePrefix("uri=")
         )
@@ -39,6 +40,7 @@ class RestExceptionHandler : Logging {
         val errorResponse = ErrorResponse(
             message = ex.message!!,
             status = HttpStatus.CONFLICT.value(),
+            errorCode = "USER_ALREADY_EXISTS",
             timestamp = OffsetDateTime.now(),
             path = request.getDescription(false).removePrefix("uri=")
         )
@@ -54,6 +56,7 @@ class RestExceptionHandler : Logging {
         val errorResponse = ErrorResponse(
             message = ex.message ?: "Invalid user data provided",
             status = HttpStatus.BAD_REQUEST.value(),
+            errorCode = "INVALID_USER_DATA",
             timestamp = OffsetDateTime.now(),
             path = request.getDescription(false).removePrefix("uri=")
         )
@@ -69,6 +72,7 @@ class RestExceptionHandler : Logging {
         val errorResponse = ErrorResponse(
             message = ex.message ?: "Unauthorized",
             status = HttpStatus.FORBIDDEN.value(),
+            errorCode = "UNAUTHORIZED",
             timestamp = OffsetDateTime.now(),
             path = request.getDescription(false).removePrefix("uri=")
         )
@@ -81,17 +85,18 @@ class RestExceptionHandler : Logging {
         request: WebRequest
     ): ResponseEntity<ErrorResponse> {
         // Check if it's a service unavailable error (has a cause)
-        val status = if (ex.cause != null) {
+        val (status, errorCode) = if (ex.cause != null) {
             logger.error("Moderation service unavailable: ${ex.message}", ex)
-            HttpStatus.INTERNAL_SERVER_ERROR
+            HttpStatus.INTERNAL_SERVER_ERROR to "MODERATION_SERVICE_UNAVAILABLE"
         } else {
             logger.info("Moderation policy violation: ${ex.message}")
-            HttpStatus.BAD_REQUEST
+            HttpStatus.BAD_REQUEST to "MODERATION_POLICY_VIOLATION"
         }
 
         val errorResponse = ErrorResponse(
             message = ex.message ?: "Moderation check failed",
             status = status.value(),
+            errorCode = errorCode,
             timestamp = OffsetDateTime.now(),
             path = request.getDescription(false).removePrefix("uri=")
         )
@@ -107,6 +112,7 @@ class RestExceptionHandler : Logging {
         val errorResponse = ErrorResponse(
             message = "An unexpected error occurred: ${ex.message}",
             status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
+            errorCode = "INTERNAL_SERVER_ERROR",
             timestamp = OffsetDateTime.now(),
             path = request.getDescription(false).removePrefix("uri=")
         )

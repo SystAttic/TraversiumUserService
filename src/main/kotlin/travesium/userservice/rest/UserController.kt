@@ -71,7 +71,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Bad Request - Invalid user data provided.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"Invalid user data: username is required","status":400,"errorCode":"INVALID_USER_DATA","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users"}"""
+                    )]
                 )]
             ),
             ApiResponse(
@@ -79,7 +82,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Forbidden - Unauthorized to create user.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"Unauthorized","status":403,"errorCode":"UNAUTHORIZED","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users"}"""
+                    )]
                 )]
             ),
             ApiResponse(
@@ -87,7 +93,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Conflict - User with the same username or email already exists.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"User with username 'johndoe' already exists","status":409,"errorCode":"USER_ALREADY_EXISTS","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users"}"""
+                    )]
                 )]
             )
         ]
@@ -118,7 +127,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Not found - User not found.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"User not found","status":404,"errorCode":"USER_NOT_FOUND","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users"}"""
+                    )]
                 )]
             ),
             ApiResponse(
@@ -126,7 +138,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Bad Request - Neither username nor email provided.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"Invalid user data: Either username or email must be provided","status":400,"errorCode":"INVALID_USER_DATA","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users"}"""
+                    )]
                 )]
             )
         ]
@@ -161,7 +176,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Forbidden - Unauthorized to delete user.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"Unauthorized","status":403,"errorCode":"UNAUTHORIZED","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users"}"""
+                    )]
                 )]
             ),
             ApiResponse(
@@ -169,7 +187,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Not found - User not found.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"User not found","status":404,"errorCode":"USER_NOT_FOUND","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users"}"""
+                    )]
                 )]
             )
         ]
@@ -228,7 +249,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Forbidden - Unauthorized to update user.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"Unauthorized","status":403,"errorCode":"UNAUTHORIZED","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users"}"""
+                    )]
                 )]
             ),
             ApiResponse(
@@ -236,7 +260,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Not found - User not found.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"User not found","status":404,"errorCode":"USER_NOT_FOUND","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users"}"""
+                    )]
                 )]
             ),
             ApiResponse(
@@ -244,7 +271,16 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Bad Request - Invalid user data or moderation policy violation.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        name = "InvalidData",
+                        summary = "Invalid user data",
+                        value = """{"message":"Invalid user data: description is required","status":400,"errorCode":"INVALID_USER_DATA","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users"}"""
+                    ), ExampleObject(
+                        name = "ModerationViolation",
+                        summary = "Moderation policy violation",
+                        value = """{"message":"Content violates moderation policy","status":400,"errorCode":"MODERATION_POLICY_VIOLATION","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users"}"""
+                    )]
                 )]
             ),
             ApiResponse(
@@ -252,7 +288,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Internal Server Error - Moderation service unavailable.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"Moderation service unavailable","status":500,"errorCode":"MODERATION_SERVICE_UNAVAILABLE","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users"}"""
+                    )]
                 )]
             )
         ]
@@ -303,7 +342,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Bad Request - Invalid list of usernames provided.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"Invalid user data: username list cannot be empty","status":400,"errorCode":"INVALID_USER_DATA","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/userList"}"""
+                    )]
                 )]
             )
         ]
@@ -334,7 +376,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Forbidden - Unauthorized to follow user.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"Unauthorized","status":403,"errorCode":"UNAUTHORIZED","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/follow/johndoe"}"""
+                    )]
                 )]
             ),
             ApiResponse(
@@ -342,7 +387,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Not found - User not found.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"User not found","status":404,"errorCode":"USER_NOT_FOUND","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/follow/johndoe"}"""
+                    )]
                 )]
             ),
             ApiResponse(
@@ -350,7 +398,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Bad Request - Invalid follow operation.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"Invalid user data: Cannot follow yourself","status":400,"errorCode":"INVALID_USER_DATA","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/follow/johndoe"}"""
+                    )]
                 )]
             )
         ]
@@ -379,7 +430,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Forbidden - Unauthorized to follow user.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"Unauthorized","status":403,"errorCode":"UNAUTHORIZED","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/unfollow/johndoe"}"""
+                    )]
                 )]
             ),
             ApiResponse(
@@ -387,7 +441,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Not found - User not found.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"User not found","status":404,"errorCode":"USER_NOT_FOUND","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/unfollow/johndoe"}"""
+                    )]
                 )]
             ),
             ApiResponse(
@@ -395,7 +452,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Bad Request - Invalid unfollow operation.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"Invalid user data: Cannot unfollow yourself","status":400,"errorCode":"INVALID_USER_DATA","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/unfollow/johndoe"}"""
+                    )]
                 )]
             )
         ]
@@ -428,7 +488,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Not found - User not found.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"User not found","status":404,"errorCode":"USER_NOT_FOUND","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/johndoe/followers"}"""
+                    )]
                 )]
             )
         ]
@@ -461,7 +524,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Not found - User not found.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"User not found","status":404,"errorCode":"USER_NOT_FOUND","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/johndoe/following"}"""
+                    )]
                 )]
             )
         ]
@@ -494,7 +560,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Not found - User not found.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"User not found","status":404,"errorCode":"USER_NOT_FOUND","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/johndoe/followers/count"}"""
+                    )]
                 )]
             )
         ]
@@ -523,7 +592,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Not found - User not found.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"User not found","status":404,"errorCode":"USER_NOT_FOUND","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/johndoe/following/count"}"""
+                    )]
                 )]
             )
         ]
@@ -548,7 +620,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Forbidden - Unauthorized to follow user.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"Unauthorized","status":403,"errorCode":"UNAUTHORIZED","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/block/johndoe"}"""
+                    )]
                 )]
             ),
             ApiResponse(
@@ -556,7 +631,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Not found - User not found.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"User not found","status":404,"errorCode":"USER_NOT_FOUND","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/block/johndoe"}"""
+                    )]
                 )]
             ),
             ApiResponse(
@@ -564,7 +642,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Bad Request - Invalid block operation.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"Invalid user data: Cannot block yourself","status":400,"errorCode":"INVALID_USER_DATA","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/block/johndoe"}"""
+                    )]
                 )]
             )
         ]
@@ -594,7 +675,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Forbidden - Unauthorized to follow user.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"Unauthorized","status":403,"errorCode":"UNAUTHORIZED","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/unblock/johndoe"}"""
+                    )]
                 )]
             ),
             ApiResponse(
@@ -602,7 +686,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Not found - User not found.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"User not found","status":404,"errorCode":"USER_NOT_FOUND","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/unblock/johndoe"}"""
+                    )]
                 )]
             ),
             ApiResponse(
@@ -610,7 +697,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Bad Request - Invalid unblock operation.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"Invalid user data: Cannot unblock yourself","status":400,"errorCode":"INVALID_USER_DATA","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/unblock/johndoe"}"""
+                    )]
                 )]
             )
         ]
@@ -643,7 +733,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Forbidden - Unauthorized to follow user.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"Unauthorized","status":403,"errorCode":"UNAUTHORIZED","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/blocked"}"""
+                    )]
                 )]
             ),
             ApiResponse(
@@ -651,7 +744,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Not found - User not found.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"User not found","status":404,"errorCode":"USER_NOT_FOUND","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/blocked"}"""
+                    )]
                 )]
             )
         ]
@@ -683,7 +779,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Forbidden - Unauthorized to follow user.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"Unauthorized","status":403,"errorCode":"UNAUTHORIZED","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/blocked/count"}"""
+                    )]
                 )]
             ),
             ApiResponse(
@@ -691,7 +790,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Not found - User not found.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"User not found","status":404,"errorCode":"USER_NOT_FOUND","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/blocked/count"}"""
+                    )]
                 )]
             )
         ]
@@ -720,7 +822,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Bad Request - Neither username nor email provided.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"Invalid user data: Either username or email must be provided","status":400,"errorCode":"INVALID_USER_DATA","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/exists"}"""
+                    )]
                 )]
             )
         ]
@@ -758,7 +863,10 @@ class UserController(private val userService: UserService) : Logging {
                 description = "Bad Request - Invalid query parameter.",
                 content = [Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = ErrorResponse::class)
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"Invalid user data: query parameter cannot be empty","status":400,"errorCode":"INVALID_USER_DATA","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/search"}"""
+                    )]
                 )]
             )
         ]
