@@ -77,6 +77,11 @@ class UserService(
         UserMapper.toDto(userRepository.findByEmail(email).orElseThrow { UserExceptions.UserNotFoundException() })
 
     @Transactional
+    fun getUserById(userId: Long): UserDto {
+        return UserMapper.toDto(userRepository.findByUserId(userId).orElseThrow { UserExceptions.UserNotFoundException() })
+    }
+
+    @Transactional
     fun deleteUser() {
         val user = getUserFromContext()
 

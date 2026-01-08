@@ -160,6 +160,40 @@ class UserController(private val userService: UserService) : Logging {
         return ResponseEntity.ok(user)
     }
 
+    @GetMapping("/{userId}")
+    @Operation(
+        operationId = "getUserById",
+        tags = ["User"],
+        summary = "Get a user by user ID.",
+        description = "Get a user by user ID.",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Successfully retrieved the user by user ID.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = UserDto::class)
+                )]
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "Not found - User not found.",
+                content = [Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = Schema(implementation = ErrorResponse::class),
+                    examples = [ExampleObject(
+                        value = """{"message":"User not found","status":404,"errorCode":"USER_NOT_FOUND","timestamp":"2026-01-01T12:00:00Z","path":"/rest/v1/users/123"}"""
+                    )]
+                )]
+            )
+        ]
+    )
+    fun getUserById(@PathVariable userId: Long): ResponseEntity<UserDto> {
+        val user = userService.getUserById(userId)
+        logger.info("User with ID $userId found.")
+        return ResponseEntity.ok(user)
+    }
+
     @DeleteMapping()
     @Operation(
         operationId = "deleteUser",
