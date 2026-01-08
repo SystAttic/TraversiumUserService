@@ -7,6 +7,7 @@ import io.grpc.stub.MetadataUtils
 import org.apache.logging.log4j.kotlin.logger
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
+import traversium.commonmultitenancy.TenantContext
 import traversium.tripservice.removeblocked.RemoveBlockedServiceGrpc
 import traversium.tripservice.removeblocked.RemoveRequest
 
@@ -31,6 +32,10 @@ class TripServiceGrpcClient(
         metadata.put(
             Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER),
             "Bearer $firebaseToken"
+        )
+        metadata.put(
+            Metadata.Key.of("X-Tenant-Id", Metadata.ASCII_STRING_MARSHALLER),
+            TenantContext.getTenant()
         )
 
         val response = removeBlockedStub

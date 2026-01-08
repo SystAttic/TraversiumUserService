@@ -32,14 +32,4 @@ class TenantFilter : OncePerRequestFilter() {
             TenantContext.clear()
         }
     }
-
-    override fun shouldNotFilter(request: HttpServletRequest): Boolean {
-        val path = request.requestURI.removePrefix(request.contextPath)
-
-        val unauthenticatedPaths = setOf(
-            "/rest/v1/users/exists"
-        )
-
-        return path !in unauthenticatedPaths
-    }
 }
