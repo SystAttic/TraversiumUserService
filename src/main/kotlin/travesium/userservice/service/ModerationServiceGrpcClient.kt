@@ -8,6 +8,7 @@ import org.apache.logging.log4j.kotlin.logger
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import traversium.commonmultitenancy.TenantContext
+import traversium.commonmultitenancy.TenantUtils
 import traversium.moderation.textmoderation.ModerateTextRequest
 import traversium.moderation.textmoderation.ModerateTextResponse
 import traversium.moderation.textmoderation.TextModerationServiceGrpc
@@ -35,7 +36,7 @@ class ModerationServiceGrpcClient(
         )
         metadata.put(
             Metadata.Key.of("X-Tenant-Id", Metadata.ASCII_STRING_MARSHALLER),
-            TenantContext.getTenant()
+            TenantUtils.desanitizeTenantIdFromSchema(TenantContext.getTenant())
         )
 
         val response = textModerationStub
