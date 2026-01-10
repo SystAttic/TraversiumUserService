@@ -77,8 +77,8 @@ class UserService(
         UserMapper.toDto(userRepository.findByEmail(email).orElseThrow { UserExceptions.UserNotFoundException() })
 
     @Transactional
-    fun getUserById(userId: Long): UserDto {
-        return UserMapper.toDto(userRepository.findByUserId(userId).orElseThrow { UserExceptions.UserNotFoundException() })
+    fun getUserById(firebaseId: String): UserDto {
+        return UserMapper.toDto(userRepository.findByFirebaseId(firebaseId).orElseThrow { UserExceptions.UserNotFoundException() })
     }
 
     @Transactional
