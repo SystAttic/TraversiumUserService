@@ -1,7 +1,6 @@
 package travesium.userservice.security
 
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.UserRecord
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
@@ -9,8 +8,6 @@ import jakarta.servlet.http.HttpServletResponse
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
-import traversium.commonmultitenancy.TenantContext
-import traversium.commonmultitenancy.TenantUtils
 
 /**
  * @author Maja Razinger
@@ -34,22 +31,9 @@ class FirebaseAuthenticationFilter(
 
             val decodedToken = firebaseAuth.verifyIdToken(token)
             val uid = decodedToken.uid
-            val tenantId = TenantUtils.desanitizeTenantIdFromSchema(TenantContext.getTenant())
-
-            val userRecord = if (tenantId != "public") {
-                try {
-                    val tenantAuth = firebaseAuth.tenantManager.getAuthForTenant(tenantId)
-                    tenantAuth.getUser(uid)
-                } catch (e: FirebaseAuthException) {
-                    logger.error("Failed to get user from tenant $tenantId: ${e.message}")
-                    throw e
-                }
-            } else {
-                firebaseAuth.getUser(uid)
-            }
 
             SecurityContextHolder.getContext().authentication = TraversiumAuthentication(
-                userRecordToPrincipal(userRecord),
+                userRecordToPrincipal(firebaseAuth.getUser(uid)),
                 null,
                 emptyList(),
                 token
